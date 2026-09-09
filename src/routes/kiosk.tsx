@@ -14,19 +14,21 @@ import {
   Phone,
   IdCard,
   Lock,
+  Eye,
+  Sparkles,
 } from "lucide-react";
 import fundus from "@/assets/fundus.jpg";
 
 export const Route = createFileRoute("/kiosk")({
   head: () => ({
     meta: [
-      { title: "Kiosk Upload & Status Tracker — Drishti.AI" },
+      { title: "Kiosk Upload & Status Tracker — Netra Rakshak" },
       {
         name: "description",
         content:
           "Upload fundus images at the PHC kiosk, get an instant AI retinopathy grade, and track specialist verification status for every scan.",
       },
-      { property: "og:title", content: "Kiosk Upload & Status Tracker — Drishti.AI" },
+      { property: "og:title", content: "Kiosk Upload & Status Tracker — Netra Rakshak" },
       {
         property: "og:description",
         content: "Instant AI grading plus a live verification status tracker for kiosk operators.",
@@ -91,14 +93,14 @@ const INITIAL_HISTORY: Scan[] = [
 function StatusBadge({ scan }: { scan: Scan }) {
   if (scan.status === "verified") {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-400">
         <CheckCircle2 className="h-3.5 w-3.5" />
         Verified by {scan.doctor}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-medium text-orange-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-400">
       <Clock className="h-3.5 w-3.5" />
       Pending Doctor Review
     </span>
@@ -167,30 +169,41 @@ function KioskPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white px-4 py-10">
-      <div className="mx-auto w-full max-w-3xl">
+    <main className="min-h-screen bg-background px-4 py-10 relative">
+      {/* Background effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[120px] animate-pulse-glow" />
+        <div className="absolute bottom-1/3 left-1/4 w-[400px] h-[400px] bg-cyan-500/3 rounded-full blur-[100px] animate-pulse-glow" style={{ animationDelay: "2s" }} />
+      </div>
+
+      <div className="mx-auto w-full max-w-3xl relative z-10">
         <Link
           to="/"
-          className="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-rose-600"
+          className="inline-flex items-center gap-2 text-sm text-slate-500 transition-colors hover:text-teal-400"
         >
           <ArrowLeft className="h-4 w-4" /> Exit kiosk
         </Link>
 
         <header className="mt-6 text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          <div className="inline-flex items-center gap-2 mb-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-500 shadow-lg shadow-teal-500/20">
+              <Eye className="h-5 w-5 text-white" />
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Patient Intake Station
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-slate-400">
             Upload fundus photographs and track specialist verification.
           </p>
         </header>
 
-        <div className="mx-auto mt-6 flex max-w-md gap-1 rounded-xl bg-pink-50 p-1">
+        <div className="mx-auto mt-6 flex max-w-md gap-1 rounded-2xl bg-white/5 border border-white/5 p-1">
           <button
             type="button"
             onClick={() => setTab("upload")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              tab === "upload" ? "bg-white text-rose-700 shadow-sm" : "text-slate-500"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              tab === "upload" ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/20" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <UploadCloud className="h-4 w-4" /> New Scan
@@ -198,8 +211,8 @@ function KioskPage() {
           <button
             type="button"
             onClick={() => setTab("history")}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              tab === "history" ? "bg-white text-rose-700 shadow-sm" : "text-slate-500"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+              tab === "history" ? "bg-gradient-to-r from-teal-600 to-cyan-600 text-white shadow-lg shadow-teal-500/20" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <History className="h-4 w-4" /> History ({history.length})
@@ -210,15 +223,17 @@ function KioskPage() {
           <section className="mt-8">
             {stage === "idle" && (
               <div className="space-y-5">
-                <div className="rounded-2xl border border-pink-100 bg-pink-50 p-6">
-                  <h2 className="text-sm font-semibold text-slate-900">Patient Details</h2>
+                <div className="glass-card rounded-2xl p-6">
+                  <h2 className="text-sm font-bold text-white flex items-center gap-2">
+                    <User className="h-4 w-4 text-teal-400" /> Patient Details
+                  </h2>
                   <p className="mt-0.5 text-xs text-slate-500">
                     Required before the upload zone unlocks.
                   </p>
                   <div className="mt-4 space-y-4">
                     <label className="block">
-                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                        <User className="h-3.5 w-3.5 text-rose-600" /> Patient Full Name
+                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                        <User className="h-3.5 w-3.5 text-teal-400" /> Patient Full Name
                       </span>
                       <input
                         type="text"
@@ -226,12 +241,12 @@ function KioskPage() {
                         onChange={(e) => setPatientName(e.target.value)}
                         placeholder="e.g. Ramesh Kumar"
                         maxLength={100}
-                        className="w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all"
                       />
                     </label>
                     <label className="block">
-                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                        <Phone className="h-3.5 w-3.5 text-rose-600" /> Contact Number
+                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                        <Phone className="h-3.5 w-3.5 text-teal-400" /> Contact Number
                       </span>
                       <input
                         type="tel"
@@ -239,17 +254,17 @@ function KioskPage() {
                         onChange={(e) => setContact(e.target.value)}
                         placeholder="+91 98765 43210"
                         maxLength={16}
-                        className="w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all"
                       />
                       {contact.trim() !== "" && !phoneOk && (
-                        <p className="mt-1 text-xs text-rose-600">
+                        <p className="mt-1 text-xs text-red-400">
                           Enter a valid number: +91 followed by 10 digits.
                         </p>
                       )}
                     </label>
                     <label className="block">
-                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-600">
-                        <IdCard className="h-3.5 w-3.5 text-rose-600" /> Special ID / ABHA ID / Local ID
+                      <span className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                        <IdCard className="h-3.5 w-3.5 text-teal-400" /> Special ID / ABHA ID / Local ID
                       </span>
                       <input
                         type="text"
@@ -257,7 +272,7 @@ function KioskPage() {
                         onChange={(e) => setSpecialId(e.target.value)}
                         placeholder="e.g. 12-3456-7890-1234"
                         maxLength={32}
-                        className="w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                        className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-teal-500/50 focus:ring-2 focus:ring-teal-500/20 transition-all"
                       />
                     </label>
                   </div>
@@ -265,7 +280,7 @@ function KioskPage() {
 
                 {!formValid && (
                   <p className="flex items-center justify-center gap-2 text-sm text-slate-500">
-                    <Lock className="h-4 w-4 text-rose-500" />
+                    <Lock className="h-4 w-4 text-teal-500" />
                     Fill in all patient details above to unlock image upload.
                   </p>
                 )}
@@ -290,21 +305,21 @@ function KioskPage() {
                     if (formValid && (e.key === "Enter" || e.key === " "))
                       inputRef.current?.click();
                   }}
-                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-16 text-center transition-colors ${
+                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed px-6 py-16 text-center transition-all ${
                     !formValid
-                      ? "cursor-not-allowed border-slate-200 bg-slate-50 opacity-60"
+                      ? "cursor-not-allowed border-white/5 bg-white/[2%] opacity-50"
                       : dragging
-                        ? "cursor-pointer border-rose-500 bg-pink-100"
-                        : "cursor-pointer border-pink-200 bg-pink-50"
+                        ? "cursor-pointer border-teal-500 bg-teal-500/10"
+                        : "cursor-pointer border-white/10 bg-white/[3%] hover:border-teal-500/40 hover:bg-teal-500/5"
                   }`}
                 >
                   {formValid ? (
-                    <UploadCloud className="h-12 w-12 text-rose-600" />
+                    <UploadCloud className="h-12 w-12 text-teal-400" />
                   ) : (
-                    <Lock className="h-12 w-12 text-slate-400" />
+                    <Lock className="h-12 w-12 text-slate-600" />
                   )}
-                  <p className="mt-4 text-lg font-medium text-slate-900">
-                    Drag &amp; drop the fundus image here
+                  <p className="mt-4 text-lg font-medium text-white">
+                    Drag & drop the fundus image here
                   </p>
                   <p className="mt-1 text-sm text-slate-500">or click to browse (.jpg / .png)</p>
                   <input
@@ -320,17 +335,20 @@ function KioskPage() {
             )}
 
             {stage === "processing" && (
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-pink-50 px-6 py-20 text-center">
-                <Loader2 className="h-10 w-10 animate-spin text-rose-600" />
-                <p className="mt-5 text-base font-medium text-slate-900">
-                  Uploading to database &amp; running MATLAB/AI pipeline...
+              <div className="flex flex-col items-center justify-center glass-card rounded-2xl px-6 py-20 text-center">
+                <div className="relative">
+                  <Loader2 className="h-12 w-12 animate-spin text-teal-400" />
+                  <div className="absolute inset-0 h-12 w-12 rounded-full bg-teal-400/20 blur-lg animate-pulse" />
+                </div>
+                <p className="mt-5 text-base font-medium text-white">
+                  Uploading to database & running MATLAB/AI pipeline...
                 </p>
                 {fileName && <p className="mt-1 text-sm text-slate-500">{fileName}</p>}
               </div>
             )}
 
             {stage === "result" && (
-              <div className="overflow-hidden rounded-2xl border border-pink-100 bg-white shadow-sm">
+              <div className="overflow-hidden glass-card rounded-2xl">
                 {preview && (
                   <img
                     src={preview}
@@ -340,29 +358,29 @@ function KioskPage() {
                 )}
                 <div className="space-y-5 p-6">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Quality Check
                       </p>
-                      <p className="font-medium text-emerald-600">Pass (Image saved to database)</p>
+                      <p className="font-medium text-emerald-400">Pass (Image saved to database)</p>
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-pink-50 p-5">
+                  <div className="rounded-xl bg-teal-500/10 border border-teal-500/20 p-5">
                     <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-400">
-                      <Activity className="h-4 w-4 text-rose-600" /> AI Preliminary Grade
+                      <Activity className="h-4 w-4 text-teal-400" /> AI Preliminary Grade
                     </div>
-                    <p className="mt-2 text-2xl font-bold text-rose-700">Grade 2: Moderate NPDR</p>
+                    <p className="mt-2 text-2xl font-bold gradient-text">Grade 2: Moderate NPDR</p>
                   </div>
 
                   <div className="flex items-start gap-3">
-                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-400" />
+                    <Clock className="mt-0.5 h-5 w-5 shrink-0 text-slate-500" />
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Next Steps
                       </p>
-                      <p className="text-slate-700">
+                      <p className="text-slate-300">
                         Added to specialist queue. ETA for doctor verification: 14 minutes.
                       </p>
                     </div>
@@ -372,7 +390,7 @@ function KioskPage() {
                     <button
                       type="button"
                       onClick={reset}
-                      className="w-full rounded-xl bg-rose-600 px-5 py-3 font-semibold text-white transition-colors hover:bg-rose-700"
+                      className="w-full rounded-xl bg-gradient-to-r from-teal-600 to-cyan-600 px-5 py-3 font-bold text-white shadow-lg shadow-teal-500/20 transition-all hover:shadow-teal-500/40 hover:brightness-110"
                     >
                       Scan Next Patient
                     </button>
@@ -382,7 +400,7 @@ function KioskPage() {
                         reset();
                         setTab("history");
                       }}
-                      className="w-full rounded-xl border border-pink-200 bg-pink-50 px-5 py-3 font-semibold text-slate-800 transition-colors hover:bg-pink-100"
+                      className="w-full rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-semibold text-slate-300 transition-all hover:bg-white/10"
                     >
                       View History
                     </button>
@@ -394,10 +412,10 @@ function KioskPage() {
         )}
 
         {tab === "history" && (
-          <section className="mt-8 overflow-hidden rounded-2xl border border-pink-100">
+          <section className="mt-8 overflow-hidden glass-card rounded-2xl">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[560px] text-left text-sm">
-                <thead className="bg-pink-50 text-xs uppercase tracking-wide text-slate-500">
+                <thead className="bg-white/5 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
                     <th className="px-4 py-3 font-medium">Patient ID</th>
                     <th className="px-4 py-3 font-medium">Timestamp</th>
@@ -405,7 +423,7 @@ function KioskPage() {
                     <th className="px-4 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-pink-100">
+                <tbody className="divide-y divide-white/5">
                   {history.map((scan) => (
                     <tr
                       key={scan.id + scan.timestamp}
@@ -413,16 +431,16 @@ function KioskPage() {
                         setSelected(scan);
                         setHeatmap(false);
                       }}
-                      className="cursor-pointer bg-white transition-colors hover:bg-pink-50"
+                      className="cursor-pointer transition-colors hover:bg-white/5"
                     >
                       <td className="px-4 py-3">
-                        <p className="font-medium text-slate-900">{scan.id}</p>
+                        <p className="font-medium text-white">{scan.id}</p>
                         {scan.patientName && (
                           <p className="text-xs text-slate-500">{scan.patientName}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-500">{scan.timestamp}</td>
-                      <td className="px-4 py-3 text-slate-700">{scan.grade}</td>
+                      <td className="px-4 py-3 text-slate-400">{scan.timestamp}</td>
+                      <td className="px-4 py-3 text-slate-300">{scan.grade}</td>
                       <td className="px-4 py-3">
                         <StatusBadge scan={scan} />
                       </td>
@@ -437,21 +455,21 @@ function KioskPage() {
 
       {selected && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-0 sm:items-center sm:p-4"
           onClick={() => setSelected(null)}
->
+        >
           <div
             role="dialog"
             aria-modal="true"
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl bg-white p-6 shadow-xl sm:rounded-2xl"
+            className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl glass-card p-6 sm:rounded-2xl"
           >
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">
+                <h2 className="text-lg font-bold text-white">
                   {selected.patientName ?? selected.id}
                 </h2>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-slate-400">
                   {selected.id} · {selected.timestamp}
                 </p>
                 {selected.contact && (
@@ -465,7 +483,7 @@ function KioskPage() {
                 type="button"
                 onClick={() => setSelected(null)}
                 aria-label="Close"
-                className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-pink-50 hover:text-slate-700"
+                className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -492,23 +510,23 @@ function KioskPage() {
               <button
                 type="button"
                 onClick={() => setHeatmap((v) => !v)}
-                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:bg-pink-100"
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-slate-300 transition-all hover:bg-white/10 hover:border-teal-500/30"
               >
-                <Flame className="h-4 w-4 text-rose-600" />
+                <Flame className="h-4 w-4 text-teal-400" />
                 {heatmap ? "Hide Grad-CAM heatmap" : "Show Grad-CAM heatmap"}
               </button>
             )}
 
             <div className="mt-5 space-y-4">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   AI Preliminary Grade
                 </p>
-                <p className="text-slate-800">{selected.grade}</p>
+                <p className="text-white font-medium">{selected.grade}</p>
               </div>
 
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                   Verification
                 </p>
                 <div className="mt-1">
@@ -517,15 +535,15 @@ function KioskPage() {
               </div>
 
               {selected.status === "verified" ? (
-                <div className="rounded-xl bg-emerald-50 p-4">
-                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-700">
+                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                  <p className="text-xs font-medium uppercase tracking-wide text-emerald-400">
                     Final Grade
                   </p>
-                  <p className="font-semibold text-emerald-800">{selected.finalGrade}</p>
-                  <p className="mt-2 text-sm text-emerald-900/80">{selected.notes}</p>
+                  <p className="font-semibold text-emerald-300">{selected.finalGrade}</p>
+                  <p className="mt-2 text-sm text-emerald-300/80">{selected.notes}</p>
                 </div>
               ) : (
-                <div className="rounded-xl bg-orange-50 p-4 text-sm text-orange-800">
+                <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4 text-sm text-amber-300">
                   Awaiting specialist sign-off. Grad-CAM overlay unlocks after verification.
                 </div>
               )}
