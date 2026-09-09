@@ -204,10 +204,9 @@ const TECH_STACK = [
 ];
 
 const TEAM = [
-  { name: "Abhishek Patwa", role: "Team Lead & ML Engineer", initials: "AP" },
-  { name: "Dr. Priya Sharma", role: "Clinical Advisor", initials: "PS" },
-  { name: "Rahul Mehta", role: "Computer Vision Engineer", initials: "RM" },
-  { name: "Sneha Gupta", role: "Full Stack Developer", initials: "SG" },
+  { name: "Dev Kumar Sharma", role: "Team Lead & ML Engineer", initials: "DK" },
+  { name: "Abhishek Patwa", role: "Member & Website Developer", initials: "AP" },
+  { name: "Anushka Bondre", role: "Member, Researcher & Team Manager", initials: "AB" },
 ];
 
 /* ─── Landing Page Component ───────────────────────────── */
@@ -516,7 +515,7 @@ function LandingPage() {
             </div>
           </FadeSection>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
             {TEAM.map((member, i) => (
               <FadeSection key={member.name} delay={i * 100}>
                 <div className="glass-card-hover rounded-2xl p-6 text-center">
