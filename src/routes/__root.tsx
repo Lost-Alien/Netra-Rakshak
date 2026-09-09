@@ -14,19 +14,19 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold gradient-text">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-paper-alt)] px-4">
+      <div className="max-w-md text-center border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-8 shadow-sm">
+        <h1 className="font-serif text-6xl font-semibold text-[var(--color-ink)]">404</h1>
+        <h2 className="mt-4 font-serif text-xl font-semibold text-[var(--color-ink)]">Page Not Found</h2>
+        <p className="mt-2 text-sm text-[var(--color-gray)]">
+          The requested clinical clinical record or view doesn't exist or has moved.
         </p>
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-teal-500 hover:shadow-lg hover:shadow-teal-500/20"
+            className="inline-flex items-center justify-center bg-[var(--color-teal)] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#0c5854]"
           >
-            Go home
+            Return to Netra Rakshak Home
           </Link>
         </div>
       </div>
@@ -42,13 +42,13 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-paper-alt)] px-4">
+      <div className="max-w-md text-center border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-8 shadow-sm">
+        <h1 className="font-serif text-xl font-semibold text-[var(--color-ink)]">
+          Diagnostic System Error
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
+        <p className="mt-2 text-sm text-[var(--color-gray)]">
+          An unexpected error occurred while loading this view.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
@@ -56,15 +56,15 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-xl bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-all hover:bg-teal-500"
+            className="inline-flex items-center justify-center bg-[var(--color-teal)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#0c5854]"
           >
-            Try again
+            Retry
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-white/10"
+            className="inline-flex items-center justify-center border border-[var(--color-gray-line)] bg-[var(--color-paper)] px-4 py-2 text-sm font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--color-paper-alt)]"
           >
-            Go home
+            Home
           </a>
         </div>
       </div>
@@ -101,7 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { property: "og:type", content: "website" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:site", content: "@NetraRakshak" },
-        { name: "theme-color", content: "#0f172a" },
+        { name: "theme-color", content: "#0F6F6A" },
       ],
       links: [
         { rel: "stylesheet", href: appCss },

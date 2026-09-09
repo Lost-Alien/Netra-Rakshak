@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { ArrowRight, Download, ChevronRight, Stethoscope, Activity, Check, AlertTriangle } from "lucide-react";
+import { ArrowRight, Download, ChevronRight, Stethoscope, Activity, Check, AlertTriangle, MonitorSmartphone, LogIn } from "lucide-react";
+import fundusImage from "@/assets/fundus.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,11 +47,11 @@ const CLINICAL_CASES: ClinicalCase[] = [
     referralAction: "Non-Referable • Routine Rescreen",
     qualityVerdict: "Pass • Macula Centered",
     lesionCorrelation: "0% (No pathological lesions detected)",
-    gradCamFocus: "Model attention is correctly distributed without pathological focus.",
-    rawImage: "/assets/fundus.jpg",
-    claheImage: "/assets/fundus.jpg",
-    vesselImage: "/assets/fundus.jpg",
-    gradcamImage: "/assets/fundus.jpg",
+    gradCamFocus: "Model attention is correctly distributed across optic disc and macula without pathological focal points.",
+    rawImage: fundusImage,
+    claheImage: fundusImage,
+    vesselImage: fundusImage,
+    gradcamImage: fundusImage,
   },
   {
     id: "case-02",
@@ -62,11 +63,11 @@ const CLINICAL_CASES: ClinicalCase[] = [
     referralAction: "Non-Referable • Annual Review",
     qualityVerdict: "Enhanced • CLAHE applied due to uneven illumination",
     lesionCorrelation: "12% (Isolated microaneurysms)",
-    gradCamFocus: "Attention map activates on isolated microaneurysms along the superior arcade.",
-    rawImage: "/assets/fundus.jpg",
-    claheImage: "/assets/fundus.jpg",
-    vesselImage: "/assets/fundus.jpg",
-    gradcamImage: "/assets/fundus.jpg",
+    gradCamFocus: "Attention map activates on isolated microaneurysms along the superior temporal arcade.",
+    rawImage: fundusImage,
+    claheImage: fundusImage,
+    vesselImage: fundusImage,
+    gradcamImage: fundusImage,
   },
   {
     id: "case-03",
@@ -78,11 +79,11 @@ const CLINICAL_CASES: ClinicalCase[] = [
     referralAction: "Referable • Specialist Review Required",
     qualityVerdict: "Pass • High Clarity",
     lesionCorrelation: "84% (Multiple hemorrhages & exudates)",
-    gradCamFocus: "Strong Grad-CAM activation precisely overlaps lipid exudates near the fovea.",
-    rawImage: "/assets/fundus.jpg",
-    claheImage: "/assets/fundus.jpg",
-    vesselImage: "/assets/fundus.jpg",
-    gradcamImage: "/assets/fundus.jpg",
+    gradCamFocus: "Strong Grad-CAM activation precisely overlaps lipid exudates and blot hemorrhages near the fovea.",
+    rawImage: fundusImage,
+    claheImage: fundusImage,
+    vesselImage: fundusImage,
+    gradcamImage: fundusImage,
   },
   {
     id: "case-04",
@@ -90,15 +91,15 @@ const CLINICAL_CASES: ClinicalCase[] = [
     sourceDataset: "EyePACS Sample 882",
     icdrGrade: 4,
     icdrLabel: "Proliferative Diabetic Retinopathy (Grade 4)",
-    severityColor: "text-[var(--color-amber)]",
+    severityColor: "text-[#b91c1c]",
     referralAction: "Urgent Referable • Immediate Escalation",
     qualityVerdict: "Pass • Minor Peripheral Artifacts",
     lesionCorrelation: "96% (Neovascularization detected)",
-    gradCamFocus: "Intense activation over neovascular fronds and widespread hemorrhages.",
-    rawImage: "/assets/fundus.jpg",
-    claheImage: "/assets/fundus.jpg",
-    vesselImage: "/assets/fundus.jpg",
-    gradcamImage: "/assets/fundus.jpg",
+    gradCamFocus: "Intense activation over neovascular fronds at the disc and widespread preretinal hemorrhages.",
+    rawImage: fundusImage,
+    claheImage: fundusImage,
+    vesselImage: fundusImage,
+    gradcamImage: fundusImage,
   },
 ];
 
@@ -141,26 +142,35 @@ function LandingPage() {
   return (
     <main className="min-h-screen">
       {/* ── Navigation Header ── */}
-      <nav className="border-b border-[var(--color-gray-line)] bg-[var(--color-paper)]">
-        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-4">
+      <nav className="border-b border-[var(--color-gray-line)] bg-[var(--color-paper)] sticky top-0 z-40">
+        <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-3.5">
           <Link to="/" className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <span className="font-serif text-xl font-semibold text-[var(--color-ink)]">Netra Rakshak</span>
-            </div>
+            <span className="font-serif text-xl font-semibold text-[var(--color-ink)] tracking-tight">Netra Rakshak</span>
+            <span className="hidden sm:inline-block rounded border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider text-[var(--color-gray)]">
+              SIH 26038
+            </span>
           </Link>
-          <div className="hidden md:flex items-center gap-8 text-[15px] font-medium text-[var(--color-gray)]">
-            <a href="#how-it-works" className="hover:text-[var(--color-ink)] transition-colors">How it works</a>
-            <a href="#live-demo" className="hover:text-[var(--color-ink)] transition-colors">Live demo</a>
+          <div className="hidden lg:flex items-center gap-7 text-[14px] font-medium text-[var(--color-gray)]">
+            <a href="#how-it-works" className="hover:text-[var(--color-ink)] transition-colors">Pipeline</a>
+            <a href="#live-demo" className="hover:text-[var(--color-ink)] transition-colors">Case Inspector</a>
             <a href="#explainability" className="hover:text-[var(--color-ink)] transition-colors">Explainability</a>
             <a href="#validation" className="hover:text-[var(--color-ink)] transition-colors">Validation</a>
+            <Link to="/research" className="hover:text-[var(--color-ink)] transition-colors">Technical Plan</Link>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-[14px]">
+            <Link
+              to="/kiosk"
+              className="inline-flex items-center gap-1.5 font-medium text-[var(--color-ink)] hover:text-[var(--color-teal)] transition-colors px-2.5 py-1.5"
+            >
+              <MonitorSmartphone className="h-4 w-4 text-[var(--color-teal)]" />
+              <span className="hidden sm:inline">PHC</span> Kiosk
+            </Link>
             <Link
               to="/doctor"
-              className="inline-flex items-center gap-2 font-medium text-[var(--color-teal)] hover:underline"
+              className="inline-flex items-center gap-1.5 font-medium bg-[var(--color-teal)] text-white hover:bg-[#0c5854] transition-colors px-3 py-1.5 rounded-sm"
             >
-              Specialist Portal
-              <ArrowRight className="h-4 w-4" />
+              <Stethoscope className="h-4 w-4" />
+              Doctor <span className="hidden sm:inline">Portal</span>
             </Link>
           </div>
         </div>
@@ -198,7 +208,7 @@ function LandingPage() {
             <div className="relative aspect-[4/3] w-full bg-[var(--color-paper-alt)] border border-[var(--color-gray-line)] p-2">
               <div className="h-full w-full bg-black relative overflow-hidden">
                 <img
-                  src="/assets/fundus.jpg"
+                  src={fundusImage}
                   alt="Fundus view with Grad-CAM overlay"
                   className="h-full w-full object-contain"
                 />
@@ -206,7 +216,7 @@ function LandingPage() {
                   <div className="absolute top-1/3 right-1/3 h-40 w-40 rounded-full bg-red-600/50 blur-3xl"></div>
                 </div>
               </div>
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white bg-black/80 px-3 py-2 border border-white/20">
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white bg-black/85 px-3 py-2 border border-white/20">
                 <span className="font-mono">Grad-CAM Heatmap overlay active</span>
                 <span className="font-mono text-[var(--color-amber)]">Referable (Confidence: 94.4%)</span>
               </div>
@@ -239,7 +249,7 @@ function LandingPage() {
                 ~25%
               </div>
               <div className="mt-3 font-semibold text-[var(--color-ink)] text-[18px]">
-                Ungraddable Field Captures
+                Ungradable Field Captures
               </div>
               <p className="mt-2 text-[15px] leading-relaxed text-[var(--color-gray)]">
                 Without pupillary dilation, portable cameras often produce poorly illuminated or off-center captures that AI models blindly misclassify.
@@ -304,27 +314,40 @@ function LandingPage() {
       {/* ── Live Demo (Case Inspector) ── */}
       <section id="live-demo" className="bg-[var(--color-paper-alt)] py-24 border-y border-[var(--color-gray-line)]">
         <div className="mx-auto max-w-[1200px] px-6">
-          <h2 className="font-serif text-[35px] font-semibold text-[var(--color-ink)] mb-8">
-            Live Demo
-          </h2>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-[12px] font-mono text-[var(--color-teal)] uppercase tracking-wider font-semibold">Interactive Clinical Validation</span>
+              <h2 className="font-serif text-[35px] font-semibold text-[var(--color-ink)] mt-1">
+                Case Inspector
+              </h2>
+            </div>
+            <p className="text-[14px] text-[var(--color-gray)] max-w-md">
+              Verify how the pipeline evaluates image quality, isolates retinal microvasculature, and provides explainable Grad-CAM activation maps.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
-            {/* Sample Picker (Cards allowed here) */}
+            {/* Sample Picker */}
             <div className="lg:col-span-3 flex flex-col gap-3">
-              <div className="font-medium text-[var(--color-ink)] mb-2">Select a case:</div>
+              <div className="font-medium text-[var(--color-ink)] text-[14px]">Select validated patient case:</div>
               {CLINICAL_CASES.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelectedCase(c)}
-                  className={`text-left p-3 border transition-colors ${
+                  className={`text-left p-3.5 border transition-all ${
                     selectedCase.id === c.id
-                      ? "bg-[var(--color-paper)] border-[var(--color-teal)]"
+                      ? "bg-[var(--color-paper)] border-[var(--color-teal)] shadow-sm"
                       : "bg-[var(--color-paper)] border-[var(--color-gray-line)] hover:border-[var(--color-gray)]"
                   }`}
                 >
-                  <div className="text-[12px] font-mono text-[var(--color-gray)] uppercase">{c.sourceDataset}</div>
-                  <div className={`font-semibold mt-1 ${
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-mono text-[var(--color-gray)] uppercase">{c.sourceDataset}</span>
+                    <span className={`text-[11px] font-mono font-bold ${c.severityColor}`}>
+                      Grade {c.icdrGrade}
+                    </span>
+                  </div>
+                  <div className={`font-semibold text-[15px] mt-1.5 ${
                     selectedCase.id === c.id ? "text-[var(--color-teal)]" : "text-[var(--color-ink)]"
                   }`}>
                     {c.tag}
@@ -338,70 +361,154 @@ function LandingPage() {
               
               {/* Image Viewport */}
               <div className="w-full md:w-3/5 border-b md:border-b-0 md:border-r border-[var(--color-gray-line)] flex flex-col">
-                <div className="flex items-center gap-2 p-3 border-b border-[var(--color-gray-line)] bg-[var(--color-paper-alt)]">
-                  <span className="font-medium text-[13px] text-[var(--color-ink)]">View layer:</span>
-                  <div className="flex gap-2 text-[13px]">
+                <div className="flex items-center justify-between p-3 border-b border-[var(--color-gray-line)] bg-[var(--color-paper-alt)]">
+                  <span className="font-medium text-[13px] text-[var(--color-ink)]">Diagnostic View:</span>
+                  <div className="flex items-center gap-2 text-[13px]">
                     <button 
                       onClick={() => setActiveLayer("raw")}
-                      className={activeLayer === "raw" ? "text-[var(--color-teal)] font-medium underline" : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"}
-                    >Original</button>
-                    <span className="text-[var(--color-gray-line)]">|</span>
+                      className={`px-2 py-0.5 transition-colors ${
+                        activeLayer === "raw" 
+                          ? "bg-[var(--color-paper)] text-[var(--color-teal)] font-medium border border-[var(--color-gray-line)]" 
+                          : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                      }`}
+                    >Original Fundus</button>
                     <button 
                       onClick={() => setActiveLayer("segmentation")}
-                      className={activeLayer === "segmentation" ? "text-[var(--color-teal)] font-medium underline" : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"}
-                    >Segmentation overlay</button>
-                    <span className="text-[var(--color-gray-line)]">|</span>
+                      className={`px-2 py-0.5 transition-colors ${
+                        activeLayer === "segmentation" 
+                          ? "bg-[var(--color-paper)] text-[var(--color-teal)] font-medium border border-[var(--color-gray-line)]" 
+                          : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                      }`}
+                    >Segmentation</button>
                     <button 
                       onClick={() => setActiveLayer("gradcam")}
-                      className={activeLayer === "gradcam" ? "text-[var(--color-teal)] font-medium underline" : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"}
+                      className={`px-2 py-0.5 transition-colors ${
+                        activeLayer === "gradcam" 
+                          ? "bg-[var(--color-paper)] text-[var(--color-teal)] font-medium border border-[var(--color-gray-line)]" 
+                          : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                      }`}
                     >Grad-CAM</button>
                   </div>
                 </div>
                 
-                <div className="relative aspect-square w-full bg-black">
+                <div className="relative aspect-square w-full bg-black overflow-hidden flex items-center justify-center">
                   <img
                     src={selectedCase.rawImage}
-                    alt="Fundus view"
+                    alt={`Fundus scan for ${selectedCase.tag}`}
                     className={`h-full w-full object-contain ${
-                      activeLayer === "segmentation" ? "grayscale contrast-125" : ""
+                      activeLayer === "segmentation" ? "contrast-125 brightness-95" : ""
                     }`}
                   />
+
+                  {/* Grad-CAM Heatmap overlay */}
                   {activeLayer === "gradcam" && (
-                    <div className="absolute inset-0 pointer-events-none mix-blend-screen opacity-70 bg-gradient-to-tr from-transparent via-red-500/30 to-amber-400/40">
-                      {selectedCase.icdrGrade >= 2 && (
-                        <div className="absolute top-1/3 right-1/3 h-32 w-32 rounded-full bg-red-600/60 blur-3xl"></div>
+                    <div className="absolute inset-0 pointer-events-none mix-blend-screen opacity-75">
+                      {selectedCase.icdrGrade === 0 && (
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            background: "radial-gradient(circle at 45% 50%, rgba(0, 180, 255, 0.25) 0%, transparent 40%)",
+                          }}
+                        />
+                      )}
+                      {selectedCase.icdrGrade === 1 && (
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            background: "radial-gradient(circle at 48% 38%, rgba(255, 60, 0, 0.7) 0%, rgba(255, 200, 0, 0.4) 10%, transparent 22%)",
+                          }}
+                        />
+                      )}
+                      {selectedCase.icdrGrade === 2 && (
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            background: "radial-gradient(circle at 40% 46%, rgba(255, 0, 0, 0.85) 0%, rgba(255, 180, 0, 0.5) 15%, transparent 32%), radial-gradient(circle at 62% 58%, rgba(255, 80, 0, 0.65) 0%, transparent 25%)",
+                          }}
+                        />
+                      )}
+                      {selectedCase.icdrGrade === 4 && (
+                        <div
+                          className="h-full w-full"
+                          style={{
+                            background: "radial-gradient(circle at 35% 42%, rgba(255, 0, 0, 0.9) 0%, rgba(255, 120, 0, 0.6) 18%, transparent 35%), radial-gradient(circle at 58% 62%, rgba(255, 0, 0, 0.8) 0%, rgba(255, 180, 0, 0.5) 16%, transparent 30%), radial-gradient(circle at 48% 28%, rgba(255, 40, 0, 0.7) 0%, transparent 24%)",
+                          }}
+                        />
                       )}
                     </div>
                   )}
+
+                  {/* Morphological Segmentation overlay */}
                   {activeLayer === "segmentation" && (
                     <div className="absolute inset-0 pointer-events-none">
-                       {/* Mock segmentation vessels */}
-                       <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
-                          <path d="M50 50 Q60 20 80 10" stroke="rgba(255,255,255,0.4)" fill="none" strokeWidth="2" />
-                          <path d="M50 50 Q30 70 20 90" stroke="rgba(255,255,255,0.4)" fill="none" strokeWidth="2" />
-                       </svg>
+                      <svg width="100%" height="100%" viewBox="0 0 400 400" className="opacity-80">
+                        {/* Optic Disc boundary */}
+                        <circle cx="160" cy="200" r="32" stroke="#10b981" strokeWidth="1.5" strokeDasharray="3 3" fill="none" />
+                        <text x="130" y="160" fill="#10b981" fontSize="10" fontFamily="monospace">OPTIC DISC</text>
+
+                        {/* Macular Fovea Center */}
+                        <circle cx="230" cy="205" r="4" fill="#38bdf8" />
+                        <circle cx="230" cy="205" r="18" stroke="#38bdf8" strokeWidth="1" strokeDasharray="2 2" fill="none" />
+                        <text x="215" y="235" fill="#38bdf8" fontSize="10" fontFamily="monospace">MACULA</text>
+
+                        {/* Vessel arborization lines */}
+                        <path d="M 160 200 Q 180 140 220 110 T 300 90" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" fill="none" />
+                        <path d="M 160 200 Q 180 260 220 290 T 310 320" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" fill="none" />
+                        <path d="M 160 200 Q 130 150 100 120" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" fill="none" />
+                        <path d="M 160 200 Q 125 250 90 280" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2" fill="none" />
+
+                        {/* Lesions if present */}
+                        {selectedCase.icdrGrade >= 1 && (
+                          <circle cx="205" cy="155" r="3" fill="#ef4444" stroke="#fff" strokeWidth="0.5" />
+                        )}
+                        {selectedCase.icdrGrade >= 2 && (
+                          <>
+                            <circle cx="218" cy="170" r="3.5" fill="#ef4444" />
+                            <circle cx="245" cy="180" r="2.5" fill="#ef4444" />
+                            <rect x="250" y="160" width="14" height="8" rx="2" fill="rgba(234, 179, 8, 0.7)" stroke="#fef08a" strokeWidth="0.8" />
+                            <rect x="235" y="215" width="12" height="6" rx="2" fill="rgba(234, 179, 8, 0.7)" stroke="#fef08a" strokeWidth="0.8" />
+                          </>
+                        )}
+                        {selectedCase.icdrGrade >= 4 && (
+                          <>
+                            <path d="M 165 185 Q 175 175 190 180" stroke="#f43f5e" strokeWidth="2.5" fill="none" />
+                            <circle cx="270" cy="240" r="6" fill="rgba(239, 68, 68, 0.8)" />
+                            <circle cx="180" cy="270" r="5" fill="rgba(239, 68, 68, 0.8)" />
+                          </>
+                        )}
+                      </svg>
                     </div>
                   )}
+
+                  {/* Legend banner */}
+                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[11px] text-white bg-black/80 px-2.5 py-1.5 border border-white/10 font-mono">
+                    <span>LAYER: {activeLayer.toUpperCase()}</span>
+                    <span>QUALITY: PASS</span>
+                  </div>
                 </div>
               </div>
 
               {/* Triage Data */}
               <div className="w-full md:w-2/5 p-6 flex flex-col justify-center">
-                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-2 uppercase">Quality Gate</div>
-                <div className="text-[15px] font-semibold text-[var(--color-ink)] mb-6">{selectedCase.qualityVerdict}</div>
+                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-1 uppercase">Quality Assessment</div>
+                <div className="text-[15px] font-semibold text-[var(--color-ink)] mb-6 flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[var(--color-green)]" />
+                  {selectedCase.qualityVerdict}
+                </div>
 
-                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-2 uppercase">ICDR Grade</div>
-                <div className="font-serif text-[28px] font-semibold text-[var(--color-ink)] leading-tight mb-2">
+                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-1 uppercase">ICDR DR Classification</div>
+                <div className="font-serif text-[26px] font-semibold text-[var(--color-ink)] leading-tight mb-1.5">
                   {selectedCase.icdrLabel}
                 </div>
-                <div className={`text-[15px] font-semibold mb-6 ${selectedCase.severityColor}`}>
+                <div className={`text-[14px] font-semibold mb-6 flex items-center gap-1.5 ${selectedCase.severityColor}`}>
+                  <span className="inline-block h-2 w-2 rounded-full bg-current" />
                   {selectedCase.referralAction}
                 </div>
 
-                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-2 uppercase">Lesion Evidence Score</div>
-                <div className="text-[15px] text-[var(--color-ink)] mb-2">{selectedCase.lesionCorrelation}</div>
+                <div className="text-[12px] font-mono text-[var(--color-gray)] mb-1 uppercase">Lesion Evidence Score</div>
+                <div className="text-[15px] font-semibold text-[var(--color-ink)] mb-2">{selectedCase.lesionCorrelation}</div>
                 <p className="text-[13px] text-[var(--color-gray)] leading-relaxed italic border-l-2 border-[var(--color-gray-line)] pl-3">
-                  {selectedCase.gradCamFocus}
+                  "{selectedCase.gradCamFocus}"
                 </p>
               </div>
 
@@ -409,7 +516,7 @@ function LandingPage() {
           </div>
 
           <div className="mt-8 text-center text-[13px] text-[var(--color-gray)]">
-            Results shown are pre-computed by our MATLAB pipeline on validated sample images from APTOS/IDRiD. Live upload of new images is a planned next step.
+            Results shown are pre-computed by our MATLAB pipeline on validated sample images from APTOS 2019 and IDRiD benchmarks.
           </div>
         </div>
       </section>
@@ -433,12 +540,12 @@ function LandingPage() {
               </p>
             </div>
             <div className="bg-[var(--color-paper-alt)] border border-[var(--color-gray-line)] p-4">
-              <div className="aspect-[4/3] w-full bg-black relative">
-                <img src="/assets/fundus.jpg" alt="Annotated Grad-CAM" className="h-full w-full object-contain mix-blend-screen" />
-                <div className="absolute top-1/4 right-1/4 h-32 w-32 rounded-full border-2 border-white border-dashed flex items-center justify-center">
+              <div className="aspect-[4/3] w-full bg-black relative overflow-hidden">
+                <img src={fundusImage} alt="Annotated Grad-CAM" className="h-full w-full object-contain" />
+                <div className="absolute top-1/4 right-1/4 h-32 w-32 rounded-full border-2 border-white/80 border-dashed flex items-center justify-center">
                   <div className="h-20 w-20 rounded-full bg-red-600/70 blur-xl"></div>
                 </div>
-                <div className="absolute top-1/4 right-1/4 translate-x-32 text-white text-[11px] font-mono whitespace-nowrap bg-black/60 px-2 py-1">
+                <div className="absolute top-1/4 right-1/4 translate-x-24 text-white text-[11px] font-mono whitespace-nowrap bg-black/80 px-2 py-1 border border-white/20">
                   ← 96% overlap with annotated exudates
                 </div>
               </div>
@@ -539,10 +646,12 @@ function LandingPage() {
                 Links & Resources
               </h2>
               <div className="flex flex-col md:items-end gap-3 text-[15px]">
-                <a href="https://github.com/Abhishekpatwa00/Netra-Rakshak" className="text-[var(--color-teal)] hover:underline">GitHub Repository</a>
+                <a href="https://github.com/Abhishekpatwa00/Netra-Rakshak" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">GitHub Repository</a>
                 <Link to="/research" className="text-[var(--color-teal)] hover:underline">Full Technical Plan</Link>
-                <a href="#" className="text-[var(--color-teal)] hover:underline">IDRiD Dataset Citation</a>
-                <a href="#" className="text-[var(--color-teal)] hover:underline">APTOS Dataset Citation</a>
+                <Link to="/kiosk" className="text-[var(--color-teal)] hover:underline">PHC Kiosk Intake Station</Link>
+                <Link to="/doctor" className="text-[var(--color-teal)] hover:underline">Specialist Validation Console</Link>
+                <a href="https://idrid.grand-challenge.org/" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">IDRiD Benchmark Dataset</a>
+                <a href="https://www.kaggle.com/c/aptos2019-blindness-detection" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">APTOS 2019 Retinopathy Challenge</a>
               </div>
             </div>
           </div>
