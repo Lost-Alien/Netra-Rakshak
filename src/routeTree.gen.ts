@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DoctorRouteImport } from './routes/doctor'
 import { Route as KioskRouteImport } from './routes/kiosk'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ResearchRouteImport } from './routes/research'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,18 +35,25 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResearchRoute = ResearchRouteImport.update({
+  id: '/research',
+  path: '/research',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/doctor': typeof DoctorRoute
   '/kiosk': typeof KioskRoute
   '/login': typeof LoginRoute
+  '/research': typeof ResearchRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/doctor': typeof DoctorRoute
   '/kiosk': typeof KioskRoute
   '/login': typeof LoginRoute
+  '/research': typeof ResearchRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/doctor': typeof DoctorRoute
   '/kiosk': typeof KioskRoute
   '/login': typeof LoginRoute
+  '/research': typeof ResearchRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/doctor' | '/kiosk' | '/login'
+  fullPaths: '/' | '/doctor' | '/kiosk' | '/login' | '/research'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/doctor' | '/kiosk' | '/login'
-  id: '__root__' | '/' | '/doctor' | '/kiosk' | '/login'
+  to: '/' | '/doctor' | '/kiosk' | '/login' | '/research'
+  id: '__root__' | '/' | '/doctor' | '/kiosk' | '/login' | '/research'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,6 +76,7 @@ export interface RootRouteChildren {
   DoctorRoute: typeof DoctorRoute
   KioskRoute: typeof KioskRoute
   LoginRoute: typeof LoginRoute
+  ResearchRoute: typeof ResearchRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -99,6 +109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/research': {
+      id: '/research'
+      path: '/research'
+      fullPath: '/research'
+      preLoaderRoute: typeof ResearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   DoctorRoute: DoctorRoute,
   KioskRoute: KioskRoute,
   LoginRoute: LoginRoute,
+  ResearchRoute: ResearchRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
