@@ -77,22 +77,22 @@ Existing commercial AI systems operate as **black boxes**, lack transparent clin
 │ Stage 3: Deep Convolutional Severity Grading (ICDR Scale)                                 │
 │ • Fine-tuned CNN classifier (MATLAB Deep Learning Toolbox™)                               │
 │ • Staged into 5 ICDR classes:                                                             │
-│   - Grade 0: No Apparent Retinopathy                                                     │
+│   - Grade 0: No Apparent Retinopathy                                                      │
 │   - Grade 1: Mild NPDR (Microaneurysms only)                                              │
 │   - Grade 2: Moderate NPDR (Hemorrhages, hard exudates)                                   │
-│   - Grade 3: Severe NPDR (4-2-1 rule: >20 hemorrhages per quadrant, venous beading)        │
+│   - Grade 3: Severe NPDR (4-2-1 rule: >20 hemorrhages per quadrant, venous beading)       │
 │   - Grade 4: Proliferative DR (Neovascularization, preretinal hemorrhages)                │
 └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
 │ Stage 4: Explainability via Grad-CAM Visualizations                                       │
-│ • Gradient-weighted Class Activation Mapping computed from final convolutional layer       │
+│ • Gradient-weighted Class Activation Mapping computed from final convolutional layer      │
 │ • Transparent diagnostic heatmap highlighting microvascular lesions                       │
 │ • Spatial IoU correlation scored against physician-annotated IDRiD ground truth           │
 └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ Stage 5: Tele-Ophthalmology & Specialist Validation Loop                                   │
+│ Stage 5: Tele-Ophthalmology & Specialist Validation Loop                                  │
 │ • Non-referable (Grade 0–1): Logged to patient's ABHA record with routine annual rescreen │
 │ • Referable (Grade 2–4): Encrypted packet synced to District Hospital Specialist Console  │
 │ • Ophthalmologist confirms or overrides diagnosis with Grad-CAM inspection in <30 seconds │
