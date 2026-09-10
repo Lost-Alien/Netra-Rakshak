@@ -59,7 +59,7 @@ Existing commercial AI systems operate as **black boxes**, lack transparent clin
                                               │
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ Stage 1: Quality Gate & Illumination Normalization                                         │
+│ Stage 1: Quality Gate & Illumination Normalization                                        │
 │ • Focus evaluation via Laplacian variance & edge sharpness metrics                        │
 │ • Adaptive contrast enhancement: MATLAB adapthisteq() [CLAHE with Rayleigh distribution]  │
 │ • Rejection / recapture feedback if ungradable                                            │
