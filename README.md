@@ -229,7 +229,6 @@ npm run build
 | :--- | :--- | :--- |
 | **Dev Kumar Sharma** | **Team Lead & ML Engineer** | [@Lost-Alien](https://github.com/Lost-Alien) |
 | **Abhishek Patwa** | **Member @ Website Maker** | [@Abhishekpatwa00](https://github.com/Abhishekpatwa00) |
-| **Anushka Bondre** | **Member & Researcher and Team Manager** | Team Netra Rakshak |
 
 ---
 

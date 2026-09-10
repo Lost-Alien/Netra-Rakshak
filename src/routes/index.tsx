@@ -638,7 +638,6 @@ function LandingPage() {
               <ul className="space-y-4 text-[15px] text-[var(--color-ink)]">
                 <li><span className="font-semibold">Dev Kumar Sharma</span> — Team Lead & ML engineer</li>
                 <li><span className="font-semibold">Abhishek Patwa</span> — Member @ website maker</li>
-                <li><span className="font-semibold">Anushka Bondre</span> — Member & Researcher and team manager</li>
               </ul>
             </div>
             <div className="md:text-right">
@@ -646,7 +645,7 @@ function LandingPage() {
                 Links & Resources
               </h2>
               <div className="flex flex-col md:items-end gap-3 text-[15px]">
-                <a href="https://github.com/Abhishekpatwa00/Netra-Rakshak" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">GitHub Repository</a>
+                <a href="https://github.com/Lost-Alien/Netra-Rakshak" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">GitHub Repository</a>
                 <Link to="/research" className="text-[var(--color-teal)] hover:underline">Full Technical Plan</Link>
                 <Link to="/kiosk" className="text-[var(--color-teal)] hover:underline">PHC Kiosk Intake Station</Link>
                 <Link to="/doctor" className="text-[var(--color-teal)] hover:underline">Specialist Validation Console</Link>
