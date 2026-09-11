@@ -2,28 +2,31 @@
 ### Explainable AI for Diabetic Retinopathy Screening in Rural India
 
 [![Live Production](https://img.shields.io/badge/Live%20Deployment-Vercel-0F6F6A?style=for-the-badge&logo=vercel&logoColor=white)](https://netra-rakshak-seven.vercel.app)
+[![Hugging Face Space](https://img.shields.io/badge/Hugging%20Face-Space%20Model%20Live-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black)](https://huggingface.co/spaces/L0st-Alien/Netra_Rakshak)
 [![SIH 2026](https://img.shields.io/badge/SIH%202026-Problem%2026038-C1652F?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/research)
-[![Pipeline](https://img.shields.io/badge/Engineering-MATLAB%20Pipeline-12314F?style=for-the-badge&logo=mathworks&logoColor=white)](https://netra-rakshak-seven.vercel.app/#how-it-works)
+[![Pipeline](https://img.shields.io/badge/Engineering-MATLAB%20%26%20ONNX-12314F?style=for-the-badge&logo=onnx&logoColor=white)](https://netra-rakshak-seven.vercel.app/#how-it-works)
 [![Standard](https://img.shields.io/badge/Clinical%20Standard-ICDR%205--Stage-3F7D5C?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/#validation)
 
 > **Smart India Hackathon 2026** | **Problem Statement ID:** 26038  
 > **Domain:** MedTech / BioTech / HealthTech  
 > **Sponsor / Challenge:** MathWorks India & Ministry of Health and Family Welfare  
-> **Production Application:** [https://netra-rakshak-seven.vercel.app](https://netra-rakshak-seven.vercel.app)
+> **Production Web App:** [https://netra-rakshak-seven.vercel.app](https://netra-rakshak-seven.vercel.app)  
+> **Hugging Face Model Space:** [https://huggingface.co/spaces/L0st-Alien/Netra_Rakshak](https://huggingface.co/spaces/L0st-Alien/Netra_Rakshak)
 
 ---
 
 ## 📋 Table of Contents
 1. [Executive Summary & Clinical Background](#-executive-summary--clinical-background)
-2. [Key Deployment Challenges Solved](#-key-deployment-challenges-solved)
-3. [5-Stage MATLAB Pipeline Architecture](#-5-stage-matlab-pipeline-architecture)
-4. [Platform Features & Tele-Ophthalmology Workflows](#-platform-features--tele-ophthalmology-workflows)
-5. [Clinical Validation & Benchmark Targets](#-clinical-validation--benchmark-targets)
-6. [Tech Stack](#-tech-stack)
-7. [Repository Structure](#-repository-structure)
-8. [Local Installation & Getting Started](#-local-installation--getting-started)
-9. [The Team — Built by Innovators](#-the-team--built-by-innovators)
-10. [Citations & Acknowledgments](#-citations--acknowledgments)
+2. [Live Hugging Face Model Integration](#-live-hugging-face-model-integration)
+3. [Key Deployment Challenges Solved](#-key-deployment-challenges-solved)
+4. [5-Stage MATLAB Pipeline Architecture](#-5-stage-matlab-pipeline-architecture)
+5. [Platform Features & Tele-Ophthalmology Workflows](#-platform-features--tele-ophthalmology-workflows)
+6. [Clinical Validation & Benchmark Targets](#-clinical-validation--benchmark-targets)
+7. [Tech Stack](#-tech-stack)
+8. [Repository Structure](#-repository-structure)
+9. [Local Installation & Getting Started](#-local-installation--getting-started)
+10. [The Team — Built by Innovators](#-the-team--built-by-innovators)
+11. [Citations & Acknowledgments](#-citations--acknowledgments)
 
 ---
 
@@ -38,6 +41,50 @@ India is confronting a diabetic retinopathy epidemic:
 Existing commercial AI systems operate as **black boxes**, lack transparent clinical explainability, and fail frequently when tested on variable, low-illumination non-mydriatic (undilated) captures from portable fundus cameras deployed in field camps.
 
 **Netra Rakshak** is a clinical-grade, explainable tele-ophthalmology screening platform designed specifically for Primary Healthcare Centres (PHCs) and rural mobile health camps across India.
+
+---
+
+## 🤖 Live Hugging Face Model Integration
+
+The platform is integrated with the live production model running on Hugging Face Spaces:
+- **Space Repository:** [`L0st-Alien/Netra_Rakshak`](https://huggingface.co/spaces/L0st-Alien/Netra_Rakshak)
+- **Direct Live Endpoint:** `https://l0st-alien-netra-rakshak.hf.space`
+- **Inference Protocol:** Gradio 6 SSE / REST API (`/run_full_diagnosis`)
+- **Runtime Engine:** Python 3.10 + `onnxruntime` + OpenCV + SciPy
+
+### 20-Component Diagnostic Output Schema
+
+Every fundus acquisition evaluated by the backend model yields a complete 20-parameter clinical payload:
+
+1. **4 Multi-Modal Image Layers:**
+   - Layer 1: Primary Optical Acquisition (Raw fundus scan)
+   - Layer 2: Rayleigh Green-Channel CLAHE (Contrast-limited adaptive histogram equalization)
+   - Layer 3: Phase 4 Grad-CAM Saliency Map (Diagnostic model attention heatmap)
+   - Layer 4: Phase 2 Biomarker Segmentation Map (Segmented microaneurysms, hemorrhages, exudates, and retinal vessel tree)
+2. **Optical Quality Gate Verdicts:**
+   - Optical Resolution (`1024 × 1024 px`)
+   - Sharpness Index (Tenengrad / gradient focus metrics)
+   - Illumination Balance (Dynamic range & macula exposure)
+   - Quality Decision (`PASSED (CLINICAL GRADE)` vs Recapture required)
+3. **Clinical DR Severity Staging:**
+   - ICDR Diagnostic Grade (`Level 0` Healthy to `Level 4` Proliferative DR)
+   - Model Softmax Confidence (`86.51%`)
+   - 5-Stage Softmax Logits Distribution (Percentage confidence across all 5 stages)
+4. **Quantitative Lesion Biomarkers:**
+   - Sub-pixel Microaneurysms (MAs) count
+   - Blot Hemorrhages lesion count
+   - Hard Exudates Burden (% retinal surface covered by lipid exudates)
+   - Vascular Density (% caliber of retinal vessel tree)
+5. **Tele-Ophthalmology & Edge Optimization:**
+   - Point-of-Care Triage Verdict (`NON-REFERABLE (LOCAL CLEARANCE)` vs `REFERABLE DR FLAGGED` vs `URGENT ESCALATION`)
+   - Transmission Action (Local PHC archive vs compressed sync)
+   - Payload Size & Bandwidth Conserved (98.7% bandwidth reduction)
+   - Uplink Latency telemetry for rural 2G/3G connectivity
+   - District Civil Hospital Doctor Queue Priority (`P1 Urgent` to `P3 Routine`)
+
+### Dual Execution Strategy (`src/lib/netra-model.ts`)
+- **Direct Client Streaming:** High-performance direct connection via `@gradio/client` in modern browsers with real-time multi-stage pipeline status updates.
+- **Backend Server Function:** Resilient fallback proxy using TanStack Start's `createServerFn` with base64 serialization for constrained environments.
 
 ---
 

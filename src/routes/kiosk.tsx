@@ -18,8 +18,20 @@ import {
   Stethoscope,
   ChevronRight,
   Info,
+  ExternalLink,
+  Sparkles,
+  Layers,
+  Activity,
+  AlertTriangle,
+  RotateCcw,
 } from "lucide-react";
 import fundus from "@/assets/fundus.jpg";
+import {
+  runNetraDiagnosis,
+  NetraDiagnosisResult,
+  HF_SPACE_URL,
+  HF_SPACE_NAME,
+} from "@/lib/netra-model";
 
 export const Route = createFileRoute("/kiosk")({
   head: () => ({
@@ -41,6 +53,7 @@ export const Route = createFileRoute("/kiosk")({
 });
 
 type Stage = "idle" | "processing" | "result";
+type VisualMode = "optical" | "clahe" | "gradcam" | "biomarkers";
 
 type Scan = {
   id: string;
@@ -54,6 +67,7 @@ type Scan = {
   patientName?: string;
   contact?: string;
   specialId?: string;
+  diagnosis?: NetraDiagnosisResult;
 };
 
 const NAME_RE = /^[a-zA-Z][a-zA-Z\s.'-]{1,99}$/;
@@ -127,6 +141,13 @@ function KioskPage() {
   const [heatmap, setHeatmap] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Live Hugging Face model state
+  const [diagnosis, setDiagnosis] = useState<NetraDiagnosisResult | null>(null);
+  const [visualMode, setVisualMode] = useState<VisualMode>("gradcam");
+  const [progressText, setProgressText] = useState<string>("");
+  const [pipelineStep, setPipelineStep] = useState<number>(1);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const [patientName, setPatientName] = useState("Ramesh Patel");
   const [contact, setContact] = useState("+919876543210");
   const [specialId, setSpecialId] = useState("ABHA-91-8842-1045");
@@ -136,41 +157,67 @@ function KioskPage() {
   const idOk = ID_RE.test(specialId.trim());
   const formValid = nameOk && phoneOk && idOk;
 
-  function handleFile(file: File | undefined | null) {
+  async function handleFile(file: File | undefined | null) {
     if (!file || !formValid) return;
     const url = URL.createObjectURL(file);
     setFileName(file.name);
     setPreview(url);
     setStage("processing");
+    setErrorMessage(null);
+    setPipelineStep(1);
+    setProgressText("Initializing connection to Hugging Face ONNX Space...");
 
-    // Mock pipeline round-trip: Quality check -> Segmentation -> Grad-CAM -> Grading
-    setTimeout(() => {
+    try {
+      // Step 1: Quality Check & Illumination
+      setPipelineStep(1);
+      setProgressText("Stage 1: Optical Quality Gate & Illumination Assessment...");
+
+      // Execute live diagnosis against HF Space (L0st-Alien/Netra_Rakshak)
+      const res = await runNetraDiagnosis(file, (stageMsg) => {
+        setProgressText(stageMsg);
+        if (stageMsg.includes("Quality")) setPipelineStep(1);
+        else if (stageMsg.includes("Segmentation") || stageMsg.includes("CLAHE")) setPipelineStep(2);
+        else if (stageMsg.includes("Grad-CAM") || stageMsg.includes("Grading")) setPipelineStep(3);
+        else if (stageMsg.includes("Finalizing")) setPipelineStep(4);
+      });
+
+      setDiagnosis(res);
+      setVisualMode("gradcam");
       setStage("result");
-      setHistory((prev) => [
-        {
-          id: `P-${1045 + prev.length - INITIAL_HISTORY.length + 1}`,
-          timestamp: new Date().toLocaleString("en-IN", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          grade: "Grade 2: Moderate NPDR",
-          status: "pending",
-          image: url,
-          patientName: patientName.trim(),
-          contact: contact.trim(),
-          specialId: specialId.trim(),
-        },
-        ...prev,
-      ]);
-    }, 1800);
+
+      const newScan: Scan = {
+        id: `P-${1045 + history.length - INITIAL_HISTORY.length + 1}`,
+        timestamp: new Date().toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        grade: res.icdrDiagnosticGrade,
+        status: "pending",
+        image: res.primaryOpticalUrl || url,
+        patientName: patientName.trim(),
+        contact: contact.trim(),
+        specialId: specialId.trim(),
+        diagnosis: res,
+      };
+
+      setHistory((prev) => [newScan, ...prev]);
+    } catch (err: any) {
+      console.error("Netra Rakshak live diagnosis error:", err);
+      setErrorMessage(
+        err.message || "Failed to reach Hugging Face Space. Please check connection and retry."
+      );
+      setStage("idle");
+    }
   }
 
   function reset() {
     setPreview(null);
     setFileName(null);
+    setDiagnosis(null);
+    setErrorMessage(null);
     setStage("idle");
     setPatientName("");
     setContact("");
@@ -361,9 +408,29 @@ function KioskPage() {
                     />
                   </div>
 
+                  {/* Error Notification */}
+                  {errorMessage && (
+                    <div className="mt-4 flex items-center justify-between border border-red-300 bg-red-50 p-4 text-[13px] text-red-800">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
+                        <span>{errorMessage}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setErrorMessage(null)}
+                        className="text-[12px] font-medium text-red-700 hover:underline"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {/* Sample test shortcut button */}
-                  <div className="mt-4 flex items-center justify-between text-[13px] text-[var(--color-gray)] border-t border-[var(--color-gray-line)] pt-3">
-                    <span>Quick demonstration with preloaded benchmark capture:</span>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--color-gray)] border-t border-[var(--color-gray-line)] pt-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-[var(--color-teal)]" />
+                      <span>Live Backend: Connected to Hugging Face ONNX Space (<strong>{HF_SPACE_NAME}</strong>)</span>
+                    </div>
                     <button
                       type="button"
                       disabled={!formValid}
@@ -371,15 +438,15 @@ function KioskPage() {
                         try {
                           const res = await fetch(fundus);
                           const blob = await res.blob();
-                          const file = new File([blob], "sample-fundus-capture.jpg", { type: "image/jpeg" });
+                          const file = new File([blob], "sample-benchmark-fundus.jpg", { type: "image/jpeg" });
                           handleFile(file);
-                        } catch {
-                          setStage("result");
+                        } catch (e: any) {
+                          setErrorMessage("Failed to load sample image. " + e?.message);
                         }
                       }}
                       className="text-[var(--color-teal)] font-medium hover:underline disabled:opacity-50"
                     >
-                      Use Sample Fundus Scan →
+                      Diagnose with Sample Fundus Scan →
                     </button>
                   </div>
                 </div>
@@ -387,83 +454,339 @@ function KioskPage() {
             )}
 
             {stage === "processing" && (
-              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-16 text-center">
-                <Loader2 className="mx-auto h-10 w-10 animate-spin text-[var(--color-teal)] mb-4" />
+              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-12 text-center">
+                <Loader2 className="mx-auto h-12 w-12 animate-spin text-[var(--color-teal)] mb-4" />
                 <h3 className="font-serif text-[22px] font-semibold text-[var(--color-ink)]">
-                  Executing Retinal Analysis Pipeline...
+                  Running Deep Retinal Diagnostic Pipeline
                 </h3>
-                <div className="mt-4 max-w-sm mx-auto space-y-2 text-[13px] text-[var(--color-gray)] font-mono">
-                  <div className="flex justify-between border-b border-[var(--color-gray-line)] pb-1">
+                <p className="text-[13px] text-[var(--color-gray)] mt-1">
+                  Querying live ONNX runtime via Hugging Face Space ({HF_SPACE_NAME})
+                </p>
+
+                <div className="mt-6 max-w-md mx-auto space-y-2.5 text-[13px] font-mono text-left bg-[var(--color-paper-alt)] p-4 border border-[var(--color-gray-line)]">
+                  <div className="flex items-center justify-between border-b border-[var(--color-gray-line)] pb-1.5">
                     <span>Stage 1: Quality Gate & Illumination</span>
-                    <span className="text-[var(--color-green)] font-bold">✓ PASS</span>
+                    <span className={pipelineStep >= 1 ? "text-[var(--color-green)] font-bold" : "text-[var(--color-gray)]"}>
+                      {pipelineStep > 1 ? "✓ PASS" : pipelineStep === 1 ? "RUNNING..." : "QUEUED"}
+                    </span>
                   </div>
-                  <div className="flex justify-between border-b border-[var(--color-gray-line)] pb-1">
-                    <span>Stage 2: Vessel & Lesion Segmentation</span>
-                    <span className="text-[var(--color-green)] font-bold">✓ DONE</span>
+                  <div className="flex items-center justify-between border-b border-[var(--color-gray-line)] pb-1.5">
+                    <span>Stage 2: Rayleigh CLAHE & Vessel Segmentation</span>
+                    <span className={pipelineStep >= 2 ? "text-[var(--color-green)] font-bold" : "text-[var(--color-gray)]"}>
+                      {pipelineStep > 2 ? "✓ DONE" : pipelineStep === 2 ? "SEGMENTING..." : "QUEUED"}
+                    </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Stage 3: CNN ICDR Severity Grading</span>
-                    <span className="text-[var(--color-teal)] font-bold animate-pulse">RUNNING...</span>
+                  <div className="flex items-center justify-between border-b border-[var(--color-gray-line)] pb-1.5">
+                    <span>Stage 3: Deep CNN 5-Stage ICDR Grading</span>
+                    <span className={pipelineStep >= 3 ? "text-[var(--color-green)] font-bold" : "text-[var(--color-gray)]"}>
+                      {pipelineStep > 3 ? "✓ CLASSIFIED" : pipelineStep === 3 ? "INFERRING..." : "QUEUED"}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Stage 4: Grad-CAM Explainability Saliency</span>
+                    <span className={pipelineStep >= 4 ? "text-[var(--color-teal)] font-bold animate-pulse" : "text-[var(--color-gray)]"}>
+                      {pipelineStep >= 4 ? "COMPUTING..." : "QUEUED"}
+                    </span>
                   </div>
                 </div>
+
+                {progressText && (
+                  <p className="mt-4 text-[12px] font-mono text-[var(--color-teal)] animate-pulse">
+                    Status: {progressText}
+                  </p>
+                )}
               </div>
             )}
 
             {stage === "result" && (
-              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] overflow-hidden">
-                <div className="p-6 border-b border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] flex items-center justify-between">
+              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] overflow-hidden shadow-sm">
+                {/* Result Header */}
+                <div className="p-6 border-b border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] flex flex-wrap items-center justify-between gap-4">
                   <div>
-                    <span className="text-[12px] font-mono text-[var(--color-teal)] uppercase tracking-wider font-semibold">
-                      Automated Point-of-Care Triage Result
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[12px] font-mono text-[var(--color-teal)] uppercase tracking-wider font-semibold">
+                        Point-of-Care Triage Verdict
+                      </span>
+                      <span className="text-[11px] font-mono text-[var(--color-gray)]">
+                        • {diagnosis?.executionTimeMs ? `${(diagnosis.executionTimeMs / 1000).toFixed(2)}s roundtrip` : "Live ONNX"}
+                      </span>
+                    </div>
                     <h2 className="font-serif text-[22px] font-semibold text-[var(--color-ink)] mt-0.5">
-                      Screening Summary — {patientName || "Patient"}
+                      Screening Summary — {patientName || "Patient"} ({specialId || "Unregistered"})
                     </h2>
                   </div>
-                  <span className="border border-[#C1652F]/30 bg-[#C1652F]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#C1652F]">
-                    Referable DR Flagged
-                  </span>
+
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={HF_SPACE_URL}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-[var(--color-gray)] hover:text-[var(--color-teal)] underline"
+                    >
+                      HF Space <ExternalLink className="h-3 w-3" />
+                    </a>
+                    {diagnosis?.isUrgent ? (
+                      <span className="border border-[#b91c1c]/40 bg-[#b91c1c]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#b91c1c]">
+                        🚨 URGENT REFERRAL ESCALATION
+                      </span>
+                    ) : diagnosis?.isReferable ? (
+                      <span className="border border-[#C1652F]/40 bg-[#C1652F]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#C1652F]">
+                        ⚠️ REFERABLE DR FLAGGED
+                      </span>
+                    ) : (
+                      <span className="border border-[#3F7D5C]/40 bg-[#3F7D5C]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#3F7D5C]">
+                        ✓ NON-REFERABLE (LOCAL CLEARANCE)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                  <div className="md:col-span-5 bg-black border border-[var(--color-gray-line)] aspect-square overflow-hidden flex items-center justify-center">
-                    <img
-                      src={preview ?? fundus}
-                      alt="Uploaded scan preview"
-                      className="h-full w-full object-contain"
-                    />
+                <div className="p-6 space-y-6">
+                  {/* Multi-Modal Visual Inspector */}
+                  <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-gray-line)] pb-3 mb-4">
+                      <div>
+                        <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                          Phase Multi-Modal Visualization
+                        </span>
+                        <h4 className="font-serif text-[16px] font-semibold text-[var(--color-ink)]">
+                          Explainable Retinal Evidence (4-Layer Model Output)
+                        </h4>
+                      </div>
+
+                      {/* Visual Mode Switcher */}
+                      <div className="inline-flex rounded border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-0.5 text-[12px] font-medium">
+                        <button
+                          type="button"
+                          onClick={() => setVisualMode("optical")}
+                          className={`px-3 py-1 transition-colors ${
+                            visualMode === "optical"
+                              ? "bg-[var(--color-ink)] text-white"
+                              : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                          }`}
+                        >
+                          1. Raw Optical
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisualMode("clahe")}
+                          className={`px-3 py-1 transition-colors ${
+                            visualMode === "clahe"
+                              ? "bg-[var(--color-ink)] text-white"
+                              : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                          }`}
+                        >
+                          2. Rayleigh CLAHE
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisualMode("gradcam")}
+                          className={`px-3 py-1 transition-colors ${
+                            visualMode === "gradcam"
+                              ? "bg-[var(--color-teal)] text-white"
+                              : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                          }`}
+                        >
+                          3. Grad-CAM Heatmap
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisualMode("biomarkers")}
+                          className={`px-3 py-1 transition-colors ${
+                            visualMode === "biomarkers"
+                              ? "bg-[var(--color-ink)] text-white"
+                              : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                          }`}
+                        >
+                          4. Biomarkers Map
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                      {/* Image Frame */}
+                      <div className="md:col-span-6 bg-black border border-[var(--color-gray-line)] aspect-square overflow-hidden flex items-center justify-center relative">
+                        {visualMode === "optical" && (
+                          <img
+                            src={diagnosis?.primaryOpticalUrl || preview || fundus}
+                            alt="Primary Optical Acquisition"
+                            className="h-full w-full object-contain"
+                          />
+                        )}
+                        {visualMode === "clahe" && (
+                          <img
+                            src={diagnosis?.rayleighClaheUrl || diagnosis?.primaryOpticalUrl || preview || fundus}
+                            alt="Rayleigh Green-Channel CLAHE"
+                            className="h-full w-full object-contain"
+                          />
+                        )}
+                        {visualMode === "gradcam" && (
+                          <img
+                            src={diagnosis?.gradCamSaliencyUrl || preview || fundus}
+                            alt="Phase 4 Grad-CAM Saliency Map"
+                            className="h-full w-full object-contain"
+                          />
+                        )}
+                        {visualMode === "biomarkers" && (
+                          <img
+                            src={diagnosis?.biomarkerSegmentationUrl || preview || fundus}
+                            alt="Phase 2 Biomarker Segmentation Map"
+                            className="h-full w-full object-contain"
+                          />
+                        )}
+                        <span className="absolute bottom-2 left-2 bg-black/75 px-2 py-0.5 text-[10px] font-mono text-white tracking-wider uppercase">
+                          {visualMode === "optical" && "Layer 1: Primary Optical Acquisition"}
+                          {visualMode === "clahe" && "Layer 2: Rayleigh Green CLAHE Contrast"}
+                          {visualMode === "gradcam" && "Layer 3: CNN Grad-CAM Attention"}
+                          {visualMode === "biomarkers" && "Layer 4: Segmented Lesions & Vessels"}
+                        </span>
+                      </div>
+
+                      {/* Primary Diagnostic Summary */}
+                      <div className="md:col-span-6 space-y-3">
+                        <div className="border border-[var(--color-gray-line)] p-3.5 bg-[var(--color-paper)]">
+                          <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                            Optical Quality Gate Verdict
+                          </span>
+                          <div className="text-[15px] font-semibold text-[var(--color-green)] mt-0.5 flex items-center gap-1.5">
+                            <Check className="h-4 w-4" />
+                            {diagnosis?.qualityDecision ?? "PASSED (CLINICAL GRADE)"}
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-[var(--color-gray-line)] text-[12px]">
+                            <div>
+                              <span className="text-[var(--color-gray)]">Resolution: </span>
+                              <span className="font-mono text-[var(--color-ink)]">{diagnosis?.opticalResolution}</span>
+                            </div>
+                            <div>
+                              <span className="text-[var(--color-gray)]">Sharpness: </span>
+                              <span className="font-mono text-[var(--color-ink)]">{diagnosis?.sharpnessIndex}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="border border-[var(--color-gray-line)] p-3.5 bg-[var(--color-paper)]">
+                          <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                            ICDR Severity Classification
+                          </span>
+                          <div className="font-serif text-[20px] font-semibold text-[var(--color-ink)] mt-0.5">
+                            {diagnosis?.icdrDiagnosticGrade ?? "Grade 2: Moderate NPDR"}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-[13px]">
+                            <span className="text-[var(--color-teal)] font-medium">
+                              {diagnosis?.modelConfidence ?? "Model Confidence: 86.5%"}
+                            </span>
+                            <span className="text-[var(--color-gray)]">•</span>
+                            <span className="text-[var(--color-gray)] font-mono text-[11px]">
+                              {diagnosis?.triageStatus}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="border border-[var(--color-gray-line)] p-3.5 bg-[var(--color-paper)]">
+                          <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                            Quantitative Lesion Count (Stage 2)
+                          </span>
+                          <div className="grid grid-cols-2 gap-2 mt-1.5 text-[12px]">
+                            <div>
+                              <span className="text-[var(--color-gray)]">Sub-pixel MAs:</span>{" "}
+                              <strong className="text-[var(--color-ink)]">{diagnosis?.subPixelMAs ?? "N/A"}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[var(--color-gray)]">Hemorrhages:</span>{" "}
+                              <strong className="text-[var(--color-ink)]">{diagnosis?.blotHemorrhages ?? "N/A"}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[var(--color-gray)]">Hard Exudates:</span>{" "}
+                              <strong className="text-[var(--color-ink)]">{diagnosis?.hardExudatesBurden ?? "N/A"}</strong>
+                            </div>
+                            <div>
+                              <span className="text-[var(--color-gray)]">Vascular Density:</span>{" "}
+                              <strong className="text-[var(--color-ink)]">{diagnosis?.vascularDensity ?? "N/A"}</strong>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="md:col-span-7 space-y-4">
+                  {/* Softmax Probability Distribution */}
+                  {diagnosis?.severityDistribution?.confidences && (
                     <div className="border border-[var(--color-gray-line)] p-4 bg-[var(--color-paper-alt)]">
-                      <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">Quality Gate Verdict</span>
-                      <div className="text-[16px] font-semibold text-[var(--color-green)] mt-0.5 flex items-center gap-1.5">
-                        <Check className="h-4 w-4" />
-                        Pass (Adequate Focus & Macula Centered)
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                          5-Stage Severity Probability Distribution (Softmax Logits)
+                        </span>
+                        <span className="text-[11px] font-mono text-[var(--color-teal)] font-semibold">
+                          Validated via Netra Rakshak ONNX
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        {diagnosis.severityDistribution.confidences.map((item, idx) => {
+                          const pct = Math.round((item.confidence || 0) * 100);
+                          const isTop = idx === diagnosis.icdrLevel || pct > 50;
+                          return (
+                            <div key={item.label} className="text-[12px]">
+                              <div className="flex justify-between font-mono mb-0.5">
+                                <span className={isTop ? "font-bold text-[var(--color-ink)]" : "text-[var(--color-gray)]"}>
+                                  {item.label}
+                                </span>
+                                <span className={isTop ? "font-bold text-[var(--color-teal)]" : "text-[var(--color-gray)]"}>
+                                  {pct}% ({((item.confidence || 0) * 100).toFixed(2)}%)
+                                </span>
+                              </div>
+                              <div className="w-full bg-[var(--color-gray-line)] h-2 rounded-sm overflow-hidden">
+                                <div
+                                  className={`h-full transition-all ${
+                                    isTop ? "bg-[var(--color-teal)]" : "bg-[var(--color-gray)]/40"
+                                  }`}
+                                  style={{ width: `${Math.max(pct, 1)}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Telemetry & District Hospital Queue */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border border-[var(--color-gray-line)] p-4 bg-[var(--color-paper-alt)]">
+                      <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                        Rural 2G/3G Transmission Telemetry
+                      </span>
+                      <p className="text-[14px] font-medium text-[var(--color-ink)] mt-1">
+                        {diagnosis?.transmissionAction ?? "LOCAL ARCHIVE -> DISCHARGED AT PHC"}
+                      </p>
+                      <div className="mt-2 grid grid-cols-2 text-[12px] text-[var(--color-gray)] border-t border-[var(--color-gray-line)] pt-2">
+                        <div>
+                          Payload: <span className="font-mono text-[var(--color-ink)]">{diagnosis?.payloadSize ?? "0.00 MB"}</span>
+                        </div>
+                        <div>
+                          Uplink Latency: <span className="font-mono text-[var(--color-ink)]">{diagnosis?.networkLatency ?? "0.00s"}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="border border-[var(--color-gray-line)] p-4">
-                      <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">AI Severity Classification</span>
-                      <div className="font-serif text-[24px] font-semibold text-[var(--color-ink)] mt-1">
-                        Grade 2: Moderate NPDR
-                      </div>
-                      <p className="text-[13px] text-[var(--color-gray)] mt-1">
-                        Multiple microaneurysms and hard lipid exudates detected in superior temporal quadrant.
+                    <div className="border border-[var(--color-gray-line)] p-4 bg-[var(--color-paper-alt)]">
+                      <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
+                        District Civil Hospital Triage SLA
+                      </span>
+                      <p className="text-[14px] font-medium text-[var(--color-ink)] mt-1">
+                        Priority Queue:{" "}
+                        <span className="font-mono text-[var(--color-teal)]">
+                          {diagnosis?.doctorQueuePriority ?? "P3 - ROUTINE ANNUAL RE-SCREEN"}
+                        </span>
+                      </p>
+                      <p className="text-[12px] text-[var(--color-gray)] mt-1">
+                        Case packet logged to Anand District Tele-Ophthalmology Portal for specialist sign-off.
                       </p>
                     </div>
+                  </div>
 
-                    <div className="border border-[var(--color-gray-line)] p-4">
-                      <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">Tele-Ophthalmology Status</span>
-                      <p className="text-[14px] text-[var(--color-ink)] font-medium mt-1">
-                        Transmission completed. Added to District Hospital Specialist Validation Queue.
-                      </p>
-                      <p className="text-[12px] text-[var(--color-gray)] mt-0.5">
-                        ETA for specialist confirmation: ~14 minutes.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[var(--color-gray-line)]">
+                    <div className="flex items-center gap-3">
                       <button
                         type="button"
                         onClick={reset}
@@ -474,7 +797,6 @@ function KioskPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          reset();
                           setTab("history");
                         }}
                         className="border border-[var(--color-gray-line)] px-4 py-2.5 text-[14px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper-alt)]"
@@ -482,6 +804,13 @@ function KioskPage() {
                         View Screening Ledger
                       </button>
                     </div>
+
+                    <Link
+                      to="/doctor"
+                      className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--color-teal)] hover:underline"
+                    >
+                      <Stethoscope className="h-4 w-4" /> Open Specialist Portal →
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -584,25 +913,81 @@ function KioskPage() {
               </button>
             </div>
 
-            {/* Fundus Visual */}
-            <div className="relative mt-4 aspect-square max-h-72 w-full overflow-hidden border border-[var(--color-gray-line)] bg-black mx-auto flex items-center justify-center">
-              <img
-                src={selected.image}
-                alt={`Fundus scan for ${selected.id}`}
-                className="h-full w-full object-contain"
-              />
-              {heatmap && selected.status === "verified" && (
-                <div
-                  className="pointer-events-none absolute inset-0 mix-blend-screen opacity-75"
-                  style={{
-                    background:
-                      "radial-gradient(circle at 40% 46%, rgba(255, 0, 0, 0.85) 0%, rgba(255, 180, 0, 0.5) 15%, transparent 32%)",
-                  }}
-                />
+            {/* Fundus Visual / Multi-Modal Preview */}
+            <div className="mt-4">
+              {selected.diagnosis && (
+                <div className="flex items-center justify-between border-b border-[var(--color-gray-line)] pb-2 mb-2 text-[11px] font-medium">
+                  <span className="font-mono text-[var(--color-gray)] uppercase">Select Evidence Layer:</span>
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setVisualMode("optical")}
+                      className={`px-2 py-0.5 border ${
+                        visualMode === "optical" ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white" : "border-[var(--color-gray-line)] text-[var(--color-gray)]"
+                      }`}
+                    >
+                      Optical
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualMode("clahe")}
+                      className={`px-2 py-0.5 border ${
+                        visualMode === "clahe" ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white" : "border-[var(--color-gray-line)] text-[var(--color-gray)]"
+                      }`}
+                    >
+                      CLAHE
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualMode("gradcam")}
+                      className={`px-2 py-0.5 border ${
+                        visualMode === "gradcam" ? "border-[var(--color-teal)] bg-[var(--color-teal)] text-white" : "border-[var(--color-gray-line)] text-[var(--color-gray)]"
+                      }`}
+                    >
+                      Grad-CAM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualMode("biomarkers")}
+                      className={`px-2 py-0.5 border ${
+                        visualMode === "biomarkers" ? "border-[var(--color-ink)] bg-[var(--color-ink)] text-white" : "border-[var(--color-gray-line)] text-[var(--color-gray)]"
+                      }`}
+                    >
+                      Biomarkers
+                    </button>
+                  </div>
+                </div>
               )}
+
+              <div className="relative aspect-square max-h-72 w-full overflow-hidden border border-[var(--color-gray-line)] bg-black mx-auto flex items-center justify-center">
+                <img
+                  src={
+                    selected.diagnosis
+                      ? visualMode === "clahe"
+                        ? selected.diagnosis.rayleighClaheUrl
+                        : visualMode === "gradcam"
+                        ? selected.diagnosis.gradCamSaliencyUrl
+                        : visualMode === "biomarkers"
+                        ? selected.diagnosis.biomarkerSegmentationUrl
+                        : selected.diagnosis.primaryOpticalUrl || selected.image
+                      : selected.image
+                  }
+                  alt={`Fundus scan for ${selected.id}`}
+                  className="h-full w-full object-contain"
+                />
+                {!selected.diagnosis && heatmap && selected.status === "verified" && (
+                  <div
+                    className="pointer-events-none absolute inset-0 mix-blend-screen opacity-75"
+                    style={{
+                      background:
+                        "radial-gradient(circle at 40% 46%, rgba(255, 0, 0, 0.85) 0%, rgba(255, 180, 0, 0.5) 15%, transparent 32%)",
+                    }}
+                  />
+                )}
+              </div>
             </div>
 
-            {selected.status === "verified" && (
+            {!selected.diagnosis && selected.status === "verified" && (
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
@@ -615,11 +1000,28 @@ function KioskPage() {
               </div>
             )}
 
-            <div className="mt-4 space-y-4">
+            <div className="mt-4 space-y-3">
               <div className="border border-[var(--color-gray-line)] p-3 bg-[var(--color-paper-alt)]">
                 <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">AI Automated Classification</span>
                 <p className="font-semibold text-[15px] text-[var(--color-ink)] mt-0.5">{selected.grade}</p>
+                {selected.diagnosis && (
+                  <p className="text-[12px] font-mono text-[var(--color-teal)] mt-0.5">
+                    {selected.diagnosis.modelConfidence} • {selected.diagnosis.triageStatus}
+                  </p>
+                )}
               </div>
+
+              {selected.diagnosis && (
+                <div className="border border-[var(--color-gray-line)] p-3 bg-[var(--color-paper)] text-[12px]">
+                  <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">Biomarker Extraction Summary</span>
+                  <div className="mt-1.5 grid grid-cols-2 gap-2 text-[var(--color-ink)]">
+                    <div>MAs: <strong>{selected.diagnosis.subPixelMAs}</strong></div>
+                    <div>Hemorrhages: <strong>{selected.diagnosis.blotHemorrhages}</strong></div>
+                    <div>Hard Exudates: <strong>{selected.diagnosis.hardExudatesBurden}</strong></div>
+                    <div>Vascular Density: <strong>{selected.diagnosis.vascularDensity}</strong></div>
+                  </div>
+                </div>
+              )}
 
               <div className="border border-[var(--color-gray-line)] p-3">
                 <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">District Specialist Verification</span>

@@ -12,8 +12,11 @@ import {
   ChevronRight,
   ShieldCheck,
   Stethoscope,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import fundus from "@/assets/fundus.jpg";
+import { HF_SPACE_URL, HF_SPACE_NAME } from "@/lib/netra-model";
 
 export const Route = createFileRoute("/doctor")({
   head: () => ({
@@ -180,6 +183,16 @@ function DoctorPage() {
               <Clock className="h-3.5 w-3.5" />
               Avg Wait: {avgWait} min
             </div>
+            <a
+              href={HF_SPACE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="hidden md:inline-flex items-center gap-1.5 border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] px-2.5 py-1 text-[12px] font-medium text-[var(--color-gray)] hover:text-[var(--color-teal)]"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[var(--color-teal)]" />
+              Space: {HF_SPACE_NAME}
+              <ExternalLink className="h-3 w-3" />
+            </a>
           </div>
         </div>
       </header>
