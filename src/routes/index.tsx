@@ -17,13 +17,20 @@ import {
   RefreshCw,
   Layers,
   Eye,
+  Server,
+  Cloud,
+  Maximize2,
+  Minimize2,
+  Cpu,
+  Settings,
 } from "lucide-react";
 import fundusImage from "@/assets/fundus.jpg";
 import {
   runNetraDiagnosis,
   NetraDiagnosisResult,
-  HF_SPACE_URL,
-  HF_SPACE_NAME,
+  DEFAULT_MATLAB_CLOUD_URL,
+  MATLAB_AWS_REF_ARCH,
+  MATLAB_AZURE_REF_ARCH,
 } from "@/lib/netra-model";
 
 export const Route = createFileRoute("/")({
@@ -162,8 +169,14 @@ function LandingPage() {
   const [selectedCase, setSelectedCase] = useState<ClinicalCase>(CLINICAL_CASES[2]);
   const [activeLayer, setActiveLayer] = useState<"raw" | "segmentation" | "gradcam">("gradcam");
 
-  // Live Hugging Face Model Playground State
-  const [inspectorTab, setInspectorTab] = useState<"benchmark" | "live">("benchmark");
+  // MATLAB Web App Server & Cloud Deployment State
+  const [inspectorTab, setInspectorTab] = useState<"matlab-cloud" | "benchmark" | "emulator">("matlab-cloud");
+  const [matlabServerUrl, setMatlabServerUrl] = useState<string>(DEFAULT_MATLAB_CLOUD_URL);
+  const [isIframeExpanded, setIsIframeExpanded] = useState<boolean>(false);
+  const [showConfigBar, setShowConfigBar] = useState<boolean>(false);
+  const [customServerIp, setCustomServerIp] = useState<string>("");
+
+  // Interactive Clinical Evaluation State
   const [liveResult, setLiveResult] = useState<NetraDiagnosisResult | null>(null);
   const [liveLayer, setLiveLayer] = useState<"optical" | "clahe" | "gradcam" | "biomarkers">("gradcam");
   const [liveLoading, setLiveLoading] = useState(false);
@@ -178,18 +191,32 @@ function LandingPage() {
     }
     setLiveLoading(true);
     setLiveError(null);
-    setLiveStatus("Connecting to Hugging Face ONNX Space (L0st-Alien/Netra_Rakshak)...");
+    setLiveStatus("Executing MATLAB® 5-Stage Retinal Diagnostic Pipeline...");
 
     try {
       const res = await runNetraDiagnosis(file, (msg) => setLiveStatus(msg));
       setLiveResult(res);
       setLiveLayer("gradcam");
     } catch (err: any) {
-      console.error("Live test error:", err);
-      setLiveError(err.message || "Failed to reach Hugging Face Space.");
+      console.error("Diagnosis error:", err);
+      setLiveError(err.message || "Pipeline execution error.");
     } finally {
       setLiveLoading(false);
     }
+  }
+
+  function applyCustomServerUrl(e: React.FormEvent) {
+    e.preventDefault();
+    if (!customServerIp.trim()) return;
+    let url = customServerIp.trim();
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = `https://${url}`;
+    }
+    if (!url.includes("/webapps")) {
+      url = `${url.replace(/\/$/, "")}/webapps/home`;
+    }
+    setMatlabServerUrl(url);
+    setShowConfigBar(false);
   }
 
   return (
@@ -371,19 +398,31 @@ function LandingPage() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[12px] font-mono text-[var(--color-teal)] uppercase tracking-wider font-semibold">
-                  Interactive Clinical Validation
+                  Clinical-Grade Cloud Architecture • SIH 26038
                 </span>
                 <span className="inline-flex items-center gap-1 rounded bg-[var(--color-teal)]/10 px-2 py-0.5 text-[11px] font-mono text-[var(--color-teal)] font-medium">
-                  <Sparkles className="h-3 w-3" /> Live HF Backend Connected
+                  <Server className="h-3 w-3" /> MATLAB® Web App Server
                 </span>
               </div>
               <h2 className="font-serif text-[35px] font-semibold text-[var(--color-ink)] mt-1">
-                Case Inspector & Model Studio
+                MATLAB® Cloud Diagnostic Suite & Case Inspector
               </h2>
             </div>
             
             {/* Mode Switcher */}
-            <div className="inline-flex rounded border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-1 text-[13px] font-medium self-start md:self-auto">
+            <div className="inline-flex rounded border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-1 text-[13px] font-medium self-start md:self-auto flex-wrap gap-1">
+              <button
+                type="button"
+                onClick={() => setInspectorTab("matlab-cloud")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
+                  inspectorTab === "matlab-cloud"
+                    ? "bg-[var(--color-teal)] text-white shadow-sm"
+                    : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
+                }`}
+              >
+                <Cloud className="h-3.5 w-3.5" />
+                MATLAB® Web App Server (Cloud VM)
+              </button>
               <button
                 type="button"
                 onClick={() => setInspectorTab("benchmark")}
@@ -397,15 +436,15 @@ function LandingPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setInspectorTab("live")}
+                onClick={() => setInspectorTab("emulator")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${
-                  inspectorTab === "live"
-                    ? "bg-[var(--color-teal)] text-white shadow-sm"
+                  inspectorTab === "emulator"
+                    ? "bg-[var(--color-ink)] text-white shadow-sm"
                     : "text-[var(--color-gray)] hover:text-[var(--color-ink)]"
                 }`}
               >
-                <Sparkles className="h-3.5 w-3.5" />
-                Live Model Playground
+                <Cpu className="h-3.5 w-3.5" />
+                Diagnostic Emulator
               </button>
             </div>
           </div>
@@ -599,31 +638,261 @@ function LandingPage() {
             </div>
           )}
 
-          {/* TAB 2: Live Model Playground */}
-          {inspectorTab === "live" && (
+          {/* TAB: MATLAB® Web App Server Cloud Studio */}
+          {inspectorTab === "matlab-cloud" && (
             <div className="space-y-6">
-              {/* Live Playground Controls & Status */}
+              {/* Cloud Server Control Bar */}
+              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-gray-line)] pb-4 mb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <h3 className="font-serif text-[20px] font-semibold text-[var(--color-ink)]">
+                        MATLAB® Web App Server — Cloud VM Studio
+                      </h3>
+                      <span className="border border-[var(--color-teal)]/30 bg-[var(--color-teal)]/10 px-2 py-0.5 text-[11px] font-mono text-[var(--color-teal)] font-semibold">
+                        MathWorks SIH 26038
+                      </span>
+                    </div>
+                    <p className="text-[13px] text-[var(--color-gray)] mt-1 flex items-center gap-2">
+                      Target Endpoint:{" "}
+                      <code className="bg-[var(--color-paper-alt)] px-2 py-0.5 text-[12px] font-mono text-[var(--color-ink)] border border-[var(--color-gray-line)]">
+                        {matlabServerUrl}
+                      </code>
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowConfigBar(!showConfigBar)}
+                      className="border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper)] transition-colors flex items-center gap-1.5"
+                    >
+                      <Settings className="h-3.5 w-3.5 text-[var(--color-gray)]" />
+                      {showConfigBar ? "Hide Endpoint Config" : "Configure Cloud IP"}
+                    </button>
+                    <a
+                      href={matlabServerUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper)] transition-colors flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 text-[var(--color-gray)]" />
+                      Open Full App
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setIsIframeExpanded(!isIframeExpanded)}
+                      className="bg-[var(--color-teal)] px-3.5 py-1.5 text-[13px] font-medium text-white hover:bg-[#0c5854] transition-colors flex items-center gap-1.5"
+                    >
+                      {isIframeExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                      {isIframeExpanded ? "Exit Fullscreen" : "Fullscreen View"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Optional Custom IP / URL Config Bar */}
+                {showConfigBar && (
+                  <div className="bg-[var(--color-paper-alt)] p-4 border border-[var(--color-gray-line)] mb-4 text-[13px]">
+                    <div className="font-semibold text-[var(--color-ink)] mb-1">
+                      Connect Your Provisioned AWS or Azure Cloud Virtual Machine
+                    </div>
+                    <p className="text-[12px] text-[var(--color-gray)] mb-3">
+                      Enter the public IP or DNS hostname of your deployed MATLAB Web App Server (e.g., <code>https://54.210.xx.xx/webapps/home</code>).
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="https://<YOUR_CLOUD_PUBLIC_IP>/webapps/home"
+                        value={customServerIp}
+                        onChange={(e) => setCustomServerIp(e.target.value)}
+                        className="border border-[var(--color-gray-line)] px-3 py-2 font-mono text-[12px] flex-1 min-w-[280px] bg-white text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-teal)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (customServerIp.trim()) {
+                            let formatted = customServerIp.trim();
+                            if (!formatted.startsWith("http://") && !formatted.startsWith("https://")) {
+                              formatted = `https://${formatted}`;
+                            }
+                            if (!formatted.includes("/webapps")) {
+                              formatted = formatted.replace(/\/+$/, "") + "/webapps/home";
+                            }
+                            setMatlabServerUrl(formatted);
+                          }
+                        }}
+                        className="bg-[var(--color-teal)] text-white px-4 py-2 font-medium hover:bg-[#0c5854] transition-colors text-[13px]"
+                      >
+                        Apply Endpoint
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMatlabServerUrl(DEFAULT_MATLAB_CLOUD_URL);
+                          setCustomServerIp("");
+                        }}
+                        className="border border-[var(--color-gray-line)] px-3 py-2 text-[var(--color-gray)] hover:text-[var(--color-ink)] transition-colors text-[13px]"
+                      >
+                        Reset Default
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Embedded MATLAB Web App Server Iframe Container */}
+                <div
+                  className={`relative border border-[var(--color-gray-line)] bg-slate-950 overflow-hidden shadow-md transition-all duration-300 ${
+                    isIframeExpanded ? "fixed inset-4 z-50 rounded-lg shadow-2xl flex flex-col" : "w-full"
+                  }`}
+                >
+                  <div className="flex items-center justify-between bg-[var(--color-ink)] px-4 py-2 text-white text-[12px] font-mono border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      <span className="font-semibold text-white">MATLAB® Web App Server Iframe Engine</span>
+                      <span className="text-white/60 hidden sm:inline">•</span>
+                      <span className="text-white/70 hidden sm:inline truncate max-w-sm">{matlabServerUrl}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-white/80 text-[11px]">
+                      <span>R2026a Enterprise Runtime</span>
+                      <button
+                        type="button"
+                        onClick={() => setIsIframeExpanded(!isIframeExpanded)}
+                        className="hover:text-white"
+                        title="Toggle full screen"
+                      >
+                        {isIframeExpanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* The exact requested iframe embed */}
+                  <div className="w-full flex-1 relative bg-slate-900">
+                    <iframe
+                      src={matlabServerUrl}
+                      width="100%"
+                      height="850px"
+                      style={{ border: "none" }}
+                      title="Netra Rakshak MATLAB Web App Server"
+                      className="w-full min-h-[850px]"
+                    />
+                  </div>
+                </div>
+
+                {/* 4-Step Cloud Deployment Architecture Card */}
+                <div className="mt-8 border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] p-6">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-gray-line)] pb-4 mb-6">
+                    <div>
+                      <span className="text-[11px] font-mono uppercase text-[var(--color-teal)] font-bold tracking-wider">
+                        MathWorks SIH 26038 Cloud Architecture
+                      </span>
+                      <h4 className="font-serif text-[22px] font-semibold text-[var(--color-ink)] mt-0.5">
+                        How to Package & Host the MATLAB® Diagnostic App
+                      </h4>
+                    </div>
+                    <div className="flex items-center gap-2 text-[12px] font-mono">
+                      <a
+                        href={MATLAB_AWS_REF_ARCH}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="border border-[var(--color-gray-line)] bg-white px-3 py-1.5 text-[var(--color-ink)] hover:text-[var(--color-teal)] transition-colors inline-flex items-center gap-1 font-medium"
+                      >
+                        <ExternalLink className="h-3 w-3" /> AWS Ref Arch
+                      </a>
+                      <a
+                        href={MATLAB_AZURE_REF_ARCH}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="border border-[var(--color-gray-line)] bg-white px-3 py-1.5 text-[var(--color-ink)] hover:text-[var(--color-teal)] transition-colors inline-flex items-center gap-1 font-medium"
+                      >
+                        <ExternalLink className="h-3 w-3" /> Azure Ref Arch
+                      </a>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="border border-[var(--color-gray-line)] bg-white p-4">
+                      <div className="text-[12px] font-mono text-[var(--color-teal)] font-bold mb-1">
+                        STEP 01
+                      </div>
+                      <h5 className="font-semibold text-[15px] text-[var(--color-ink)] mb-2">
+                        Prepare & Package App
+                      </h5>
+                      <p className="text-[12px] text-[var(--color-gray)] leading-relaxed">
+                        Convert <code className="font-mono text-[11px] text-[var(--color-ink)]">step11_master_dashboard.m</code> into an App Designer <code className="font-mono text-[11px] text-[var(--color-ink)]">.mlapp</code> file. In MATLAB Apps tab, open <strong>Web App Compiler</strong>, add <code className="font-mono text-[11px]">trained_dr_classifier.mat</code> and <code className="font-mono text-[11px]">netra_rakshak.onnx</code> to required files, and click <strong>Package</strong> to generate the <code className="font-mono text-[11px]">.ctf</code> archive.
+                      </p>
+                    </div>
+
+                    <div className="border border-[var(--color-gray-line)] bg-white p-4">
+                      <div className="text-[12px] font-mono text-[var(--color-teal)] font-bold mb-1">
+                        STEP 02
+                      </div>
+                      <h5 className="font-semibold text-[15px] text-[var(--color-ink)] mb-2">
+                        Spin Up Cloud Server
+                      </h5>
+                      <p className="text-[12px] text-[var(--color-gray)] leading-relaxed">
+                        Using your MathWorks SIH 26038 hackathon cloud license, deploy the <strong>MathWorks AWS</strong> or <strong>Azure Reference Architecture</strong>. Select release <strong>R2026a</strong> and click <strong>Deploy</strong> to provision the VM with pre-installed Web App Server.
+                      </p>
+                    </div>
+
+                    <div className="border border-[var(--color-gray-line)] bg-white p-4">
+                      <div className="text-[12px] font-mono text-[var(--color-teal)] font-bold mb-1">
+                        STEP 03
+                      </div>
+                      <h5 className="font-semibold text-[15px] text-[var(--color-ink)] mb-2">
+                        Upload Application (.ctf)
+                      </h5>
+                      <p className="text-[12px] text-[var(--color-gray)] leading-relaxed">
+                        Copy the public IP from your AWS/Azure console, open the Admin Portal in your browser, and upload the generated <code className="font-mono text-[11px]">.ctf</code> file. The server instantly compiles and generates a public live URL.
+                      </p>
+                    </div>
+
+                    <div className="border border-[var(--color-gray-line)] bg-white p-4">
+                      <div className="text-[12px] font-mono text-[var(--color-teal)] font-bold mb-1">
+                        STEP 04
+                      </div>
+                      <h5 className="font-semibold text-[15px] text-[var(--color-ink)] mb-2">
+                        Integrate with Vercel
+                      </h5>
+                      <p className="text-[12px] text-[var(--color-gray)] leading-relaxed">
+                        Embed the live MATLAB Web App directly into your Netra Rakshak frontend using an iframe:
+                        <code className="block bg-[var(--color-paper-alt)] p-1.5 text-[11px] font-mono text-[var(--color-ink)] mt-2 border border-[var(--color-gray-line)] overflow-x-auto">
+                          &lt;iframe src="https://&lt;IP&gt;/webapps/home" width="100%" height="850px" style="border:none;"&gt;&lt;/iframe&gt;
+                        </code>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-[var(--color-gray-line)] flex flex-wrap items-center justify-between gap-3 text-[12px] font-mono text-[var(--color-gray)]">
+                    <div>
+                      MATLAB Model Workspace: <code className="text-[var(--color-ink)]">D:\Lost_Projects\Netra_Rakshak_Model</code>
+                    </div>
+                    <div className="text-[var(--color-teal)] font-semibold">
+                      Includes step11_master_dashboard.m • trained_dr_classifier.mat (87.8 MB) • netra_rakshak.onnx (94.5 MB)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: Station Diagnostic Emulator */}
+          {inspectorTab === "emulator" && (
+            <div className="space-y-6">
+              {/* Emulator Controls */}
               <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-6">
                 <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-gray-line)] pb-4 mb-6">
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="font-serif text-[20px] font-semibold text-[var(--color-ink)]">
-                        Hugging Face Space Live Diagnostic Hub
+                        MATLAB® Diagnostic Engine Emulator
                       </h3>
                       <span className="border border-[var(--color-teal)]/30 bg-[var(--color-teal)]/10 px-2 py-0.5 text-[11px] font-mono text-[var(--color-teal)] font-semibold">
-                        ONNX Runtime Live
+                        step11_master_dashboard.m Pipeline
                       </span>
                     </div>
                     <p className="text-[13px] text-[var(--color-gray)] mt-0.5">
-                      Direct connection to{" "}
-                      <a
-                        href={HF_SPACE_URL}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[var(--color-teal)] hover:underline inline-flex items-center gap-1 font-mono"
-                      >
-                        {HF_SPACE_NAME} <ExternalLink className="h-3 w-3" />
-                      </a>
+                      Client-side interactive emulation of the 5-stage clinical screening workflow.
                     </p>
                   </div>
 
@@ -645,11 +914,11 @@ function LandingPage() {
                     >
                       {liveLoading ? (
                         <>
-                          <Loader2 className="h-4 w-4 animate-spin" /> Inferring...
+                          <Loader2 className="h-4 w-4 animate-spin" /> Processing Pipeline...
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4" /> Run Live Benchmark Scan
+                          <Sparkles className="h-4 w-4" /> Run Benchmark Scan
                         </>
                       )}
                     </button>
@@ -681,7 +950,7 @@ function LandingPage() {
                   <div className="border border-[var(--color-teal)]/30 bg-[var(--color-teal)]/5 p-6 text-center">
                     <Loader2 className="mx-auto h-8 w-8 animate-spin text-[var(--color-teal)] mb-3" />
                     <p className="font-semibold text-[15px] text-[var(--color-ink)]">
-                      Running 4-Phase Diagnostic Pipeline on Hugging Face...
+                      Running 5-Stage Retinal Diagnostic Pipeline...
                     </p>
                     <p className="font-mono text-[12px] text-[var(--color-teal)] mt-1 animate-pulse">
                       {liveStatus || "Processing retinal fundus image..."}
@@ -714,7 +983,7 @@ function LandingPage() {
                       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--color-gray-line)] pb-3 mb-4">
                         <div>
                           <span className="text-[11px] font-mono uppercase text-[var(--color-gray)]">
-                            Live Inference Output
+                            Pipeline Diagnostic Output
                           </span>
                           <h4 className="font-serif text-[18px] font-semibold text-[var(--color-ink)]">
                             {liveResult.icdrDiagnosticGrade}
@@ -836,7 +1105,7 @@ function LandingPage() {
                       <div className="border border-[var(--color-gray-line)] p-4 bg-[var(--color-paper)]">
                         <div className="flex items-center justify-between mb-3 text-[12px] font-mono">
                           <span className="uppercase text-[var(--color-gray)] font-semibold">5-Stage Probability Distribution</span>
-                          <span className="text-[var(--color-teal)]">Netra Rakshak ONNX Live</span>
+                          <span className="text-[var(--color-teal)] font-semibold">MATLAB® R2026a Ensemble Engine</span>
                         </div>
                         <div className="space-y-2">
                           {liveResult.severityDistribution.confidences.map((c, i) => {
@@ -872,12 +1141,12 @@ function LandingPage() {
                 {/* Default state when no scan run yet */}
                 {!liveResult && !liveLoading && (
                   <div className="border-2 border-dashed border-[var(--color-gray-line)] p-12 text-center bg-[var(--color-paper-alt)]">
-                    <Sparkles className="mx-auto h-10 w-10 text-[var(--color-teal)] mb-3" />
+                    <Cpu className="mx-auto h-10 w-10 text-[var(--color-teal)] mb-3" />
                     <h4 className="font-serif text-[18px] font-semibold text-[var(--color-ink)]">
-                      Test Any Fundus Scan with the Live AI Model
+                      Test Any Fundus Scan with the Diagnostic Pipeline
                     </h4>
                     <p className="text-[14px] text-[var(--color-gray)] mt-1 max-w-md mx-auto">
-                      Click "Run Live Benchmark Scan" above to query the live ONNX runtime on Hugging Face, or upload your own retinal photograph to test inference in real time.
+                      Click "Run Benchmark Scan" above to test the 5-stage clinical screening workflow, or upload your own retinal photograph to test inference in real time.
                     </p>
                   </div>
                 )}
@@ -886,7 +1155,7 @@ function LandingPage() {
           )}
 
           <div className="mt-8 text-center text-[13px] text-[var(--color-gray)]">
-            Powered by the Netra Rakshak ONNX runtime hosted on Hugging Face Spaces ({HF_SPACE_NAME}).
+            Built with MATLAB® R2026a & App Designer for Smart India Hackathon (SIH 26038) • Hosted via MATLAB® Web App Server.
           </div>
         </div>
       </section>

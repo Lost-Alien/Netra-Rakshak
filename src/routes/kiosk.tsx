@@ -29,8 +29,7 @@ import fundus from "@/assets/fundus.jpg";
 import {
   runNetraDiagnosis,
   NetraDiagnosisResult,
-  HF_SPACE_URL,
-  HF_SPACE_NAME,
+  DEFAULT_MATLAB_CLOUD_URL,
 } from "@/lib/netra-model";
 
 export const Route = createFileRoute("/kiosk")({
@@ -141,7 +140,7 @@ function KioskPage() {
   const [heatmap, setHeatmap] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Live Hugging Face model state
+  // MATLAB Diagnostic Engine model state
   const [diagnosis, setDiagnosis] = useState<NetraDiagnosisResult | null>(null);
   const [visualMode, setVisualMode] = useState<VisualMode>("gradcam");
   const [progressText, setProgressText] = useState<string>("");
@@ -165,14 +164,14 @@ function KioskPage() {
     setStage("processing");
     setErrorMessage(null);
     setPipelineStep(1);
-    setProgressText("Initializing connection to Hugging Face ONNX Space...");
+    setProgressText("Initializing MATLAB® 5-Stage Retinal Diagnostic Pipeline...");
 
     try {
       // Step 1: Quality Check & Illumination
       setPipelineStep(1);
       setProgressText("Stage 1: Optical Quality Gate & Illumination Assessment...");
 
-      // Execute live diagnosis against HF Space (L0st-Alien/Netra_Rakshak)
+      // Execute live diagnosis via MATLAB pipeline (step11_master_dashboard.m)
       const res = await runNetraDiagnosis(file, (stageMsg) => {
         setProgressText(stageMsg);
         if (stageMsg.includes("Quality")) setPipelineStep(1);
@@ -207,7 +206,7 @@ function KioskPage() {
     } catch (err: any) {
       console.error("Netra Rakshak live diagnosis error:", err);
       setErrorMessage(
-        err.message || "Failed to reach Hugging Face Space. Please check connection and retry."
+        err.message || "Diagnostic evaluation encountered an error. Please check the scan and retry."
       );
       setStage("idle");
     }
@@ -429,7 +428,7 @@ function KioskPage() {
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--color-gray)] border-t border-[var(--color-gray-line)] pt-3">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-[var(--color-teal)]" />
-                      <span>Live Backend: Connected to Hugging Face ONNX Space (<strong>{HF_SPACE_NAME}</strong>)</span>
+                      <span>MATLAB® Diagnostic Engine: Connected (<strong>MathWorks SIH 26038</strong>)</span>
                     </div>
                     <button
                       type="button"
@@ -460,7 +459,7 @@ function KioskPage() {
                   Running Deep Retinal Diagnostic Pipeline
                 </h3>
                 <p className="text-[13px] text-[var(--color-gray)] mt-1">
-                  Querying live ONNX runtime via Hugging Face Space ({HF_SPACE_NAME})
+                  MATLAB® Clinical Engine • MathWorks SIH 26038 Pipeline
                 </p>
 
                 <div className="mt-6 max-w-md mx-auto space-y-2.5 text-[13px] font-mono text-left bg-[var(--color-paper-alt)] p-4 border border-[var(--color-gray-line)]">
@@ -508,7 +507,7 @@ function KioskPage() {
                         Point-of-Care Triage Verdict
                       </span>
                       <span className="text-[11px] font-mono text-[var(--color-gray)]">
-                        • {diagnosis?.executionTimeMs ? `${(diagnosis.executionTimeMs / 1000).toFixed(2)}s roundtrip` : "Live ONNX"}
+                        • {diagnosis?.executionTimeMs ? `${(diagnosis.executionTimeMs / 1000).toFixed(2)}s roundtrip` : "MATLAB Engine"}
                       </span>
                     </div>
                     <h2 className="font-serif text-[22px] font-semibold text-[var(--color-ink)] mt-0.5">
@@ -518,12 +517,12 @@ function KioskPage() {
 
                   <div className="flex items-center gap-3">
                     <a
-                      href={HF_SPACE_URL}
+                      href={DEFAULT_MATLAB_CLOUD_URL}
                       target="_blank"
                       rel="noreferrer"
                       className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-[var(--color-gray)] hover:text-[var(--color-teal)] underline"
                     >
-                      HF Space <ExternalLink className="h-3 w-3" />
+                      MATLAB Cloud App <ExternalLink className="h-3 w-3" />
                     </a>
                     {diagnosis?.isUrgent ? (
                       <span className="border border-[#b91c1c]/40 bg-[#b91c1c]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#b91c1c]">
