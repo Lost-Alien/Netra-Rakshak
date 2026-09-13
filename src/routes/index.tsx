@@ -226,9 +226,7 @@ function LandingPage() {
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-3.5">
           <Link to="/" className="flex items-center gap-3">
             <span className="font-serif text-xl font-semibold text-[var(--color-ink)] tracking-tight">Netra Rakshak</span>
-            <span className="hidden sm:inline-block rounded border border-[var(--color-gray-line)] bg-[var(--color-paper-alt)] px-2 py-0.5 text-[11px] font-mono uppercase tracking-wider text-[var(--color-gray)]">
-              SIH 26038
-            </span>
+            
           </Link>
           <div className="hidden lg:flex items-center gap-7 text-[14px] font-medium text-[var(--color-gray)]">
             <a href="#how-it-works" className="hover:text-[var(--color-ink)] transition-colors">Pipeline</a>
@@ -262,7 +260,7 @@ function LandingPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="max-w-xl">
               <h1 className="font-serif text-[35px] sm:text-[44px] lg:text-[55px] font-semibold leading-[1.1] text-[var(--color-ink)]">
-                1 ophthalmologist per 100,000 rural patients. 90% of the vision loss this causes is preventable — if caught early.
+               One quick scan can save a lifetime of sight.
               </h1>
               <p className="mt-6 text-[18px] sm:text-[22.5px] leading-relaxed text-[var(--color-gray)]">
                 Netra Rakshak screens retinal images for diabetic retinopathy at the point of care, explains its own reasoning, and flags referable cases for doctors in under 30 seconds.

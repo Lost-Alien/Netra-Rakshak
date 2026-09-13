@@ -11,7 +11,10 @@
  */
 
 export const DEFAULT_MATLAB_CLOUD_URL =
-  import.meta.env.VITE_MATLAB_WEBAPP_URL || "https://matlab-cloud.netra-rakshak.org/webapps/home";
+  import.meta.env["VITE_MATLAB_WEBAPP_URL"] ||
+  "https://matlab-cloud.netra-rakshak.org/webapps/home";
+
+export const NETRA_API_URL = import.meta.env["VITE_NETRA_API_URL"] || "";
 
 export const MATLAB_AWS_REF_ARCH =
   "https://github.com/mathworks-ref-arch/matlab-web-app-server-on-aws";
@@ -29,6 +32,9 @@ export interface SeverityDistribution {
 }
 
 export interface NetraDiagnosisResult {
+  predictions: number[];
+  inputShape?: number[];
+
   // Phase visual outputs (URLs / Base64 / Assets)
   primaryOpticalUrl: string;
   rayleighClaheUrl: string;
@@ -70,7 +76,84 @@ export interface NetraDiagnosisResult {
 
   // Execution Metadata
   executionTimeMs: number;
-  source: "matlab_web_app_server" | "matlab_offline_clinical_engine";
+  source: "fastapi_onnx" | "matlab_web_app_server" | "matlab_offline_clinical_engine";
+}
+
+interface FastApiPredictionResponse {
+  status?: string;
+  input_shape?: number[];
+  predictions?: number[][];
+  detail?: string;
+}
+
+const ICDR_LABELS = [
+  "Level 0: No DR (Healthy)",
+  "Level 1: Mild NPDR",
+  "Level 2: Moderate NPDR",
+  "Level 3: Severe NPDR",
+  "Level 4: Proliferative DR",
+];
+
+function formatGrade(level: number) {
+  return ICDR_LABELS[level] || `Class ${level}`;
+}
+
+function createApiDiagnosis(
+  imageUrl: string,
+  response: FastApiPredictionResponse,
+  executionTimeMs: number,
+): NetraDiagnosisResult {
+  console.log("FastAPI ONNX Response:", response);
+  const predictions = response.predictions?.[0];
+  if (!predictions?.length || predictions.some((value) => !Number.isFinite(value))) {
+    throw new Error("The analysis server returned an invalid predictions array.");
+  }
+
+  const icdrLevel = predictions.reduce(
+    (bestIndex, confidence, index, values) =>
+      confidence > (values[bestIndex] ?? -Infinity) ? index : bestIndex,
+    0,
+  );
+  const confidence = predictions[icdrLevel] ?? 0;
+  const confidences = predictions.map((value, index) => ({
+    label: formatGrade(index),
+    confidence: value,
+  }));
+  const grade = formatGrade(icdrLevel);
+  const confidencePercent = confidence * 100;
+  const isReferable = icdrLevel >= 2;
+
+  return {
+    predictions,
+    inputShape: response.input_shape ?? [],
+    primaryOpticalUrl: imageUrl,
+    rayleighClaheUrl: imageUrl,
+    gradCamSaliencyUrl: imageUrl,
+    biomarkerSegmentationUrl: imageUrl,
+    opticalResolution: response.input_shape?.slice(2).join(" × ") || "Server supplied image",
+    sharpnessIndex: "Provided by FastAPI ONNX model",
+    illuminationBalance: "Provided by FastAPI ONNX model",
+    qualityDecision: "PASSED (MODEL INPUT ACCEPTED)",
+    qualityPassed: true,
+    icdrDiagnosticGrade: grade,
+    icdrLevel,
+    modelConfidence: `Model Confidence: ${confidencePercent.toFixed(2)}%`,
+    confidencePercent,
+    triageStatus: isReferable ? "TRIAGE: REFERABLE" : "TRIAGE: NON-REFERABLE",
+    isReferable,
+    isUrgent: icdrLevel >= 4,
+    subPixelMAs: "Not returned by API",
+    blotHemorrhages: "Not returned by API",
+    hardExudatesBurden: "Not returned by API",
+    vascularDensity: "Not returned by API",
+    transmissionAction: "ANALYSIS COMPLETED BY FASTAPI",
+    payloadSize: "Not returned by API",
+    networkLatency: `${(executionTimeMs / 1000).toFixed(2)}s roundtrip`,
+    doctorQueuePriority: isReferable ? "P2 - SPECIALIST REVIEW" : "P3 - ROUTINE RESCREEN",
+    severityDistribution: { label: grade, confidences },
+    executionTimeMs,
+    source: "fastapi_onnx",
+  };
 }
 
 /**
@@ -79,26 +162,50 @@ export interface NetraDiagnosisResult {
  */
 export async function runNetraDiagnosis(
   input: File | Blob | string,
-  onProgress?: (stageText: string) => void
+  onProgress?: (stageText: string) => void,
 ): Promise<NetraDiagnosisResult> {
+  if (!NETRA_API_URL) {
+    throw new Error(
+      "The analysis API is not configured. Set VITE_NETRA_API_URL to your FastAPI /predict URL.",
+    );
+  }
+
+  if (typeof input === "string") {
+    throw new Error("Please select an image file before starting the analysis.");
+  }
+
   const startTime = Date.now();
+  onProgress?.("Uploading retinal image to the ONNX analysis server...");
+  const formData = new FormData();
+  formData.append("file", input, input instanceof File ? input.name : "retinal-image.jpg");
 
-  onProgress?.("Stage 1: Optical Quality Gate & Illumination Assessment...");
-  await new Promise((r) => setTimeout(r, 400));
+  let response: Response;
+  try {
+    response = await fetch(NETRA_API_URL, { method: "POST", body: formData });
+  } catch {
+    throw new Error("Unable to reach the analysis server. Check your connection and try again.");
+  }
 
-  onProgress?.("Stage 2: Rayleigh CLAHE Enhancement & Microvascular Lesion Filtering...");
-  await new Promise((r) => setTimeout(r, 450));
+  let payload: FastApiPredictionResponse = {};
+  try {
+    payload = (await response.json()) as FastApiPredictionResponse;
+  } catch {
+    if (!response.ok) {
+      throw new Error(`The analysis server returned an error (${response.status}).`);
+    }
+  }
 
-  onProgress?.("Stage 3: Deep CNN 5-Stage ICDR Classification (trained_dr_classifier.mat)...");
-  await new Promise((r) => setTimeout(r, 500));
+  if (!response.ok) {
+    throw new Error(
+      payload.detail || `The analysis server returned an error (${response.status}).`,
+    );
+  }
+  if (payload.status && payload.status !== "success") {
+    throw new Error(payload.detail || "The analysis server could not analyze this image.");
+  }
 
-  onProgress?.("Stage 4: Gradient-Weighted Class Activation Map (Grad-CAM) Generation...");
-  await new Promise((r) => setTimeout(r, 350));
-
-  const duration = Date.now() - startTime;
-  const imageUrl = typeof input === "string" ? input : URL.createObjectURL(input);
-
-  return generateMatlabDiagnosis(imageUrl, duration);
+  onProgress?.("Analysis complete. Preparing retinal screening results...");
+  return createApiDiagnosis(URL.createObjectURL(input), payload, Date.now() - startTime);
 }
 
 /**
@@ -106,9 +213,10 @@ export async function runNetraDiagnosis(
  */
 export function generateMatlabDiagnosis(
   imageUrl: string,
-  executionTimeMs = 1700
+  executionTimeMs = 1700,
 ): NetraDiagnosisResult {
   return {
+    predictions: [],
     primaryOpticalUrl: imageUrl,
     rayleighClaheUrl: imageUrl,
     gradCamSaliencyUrl: imageUrl,
