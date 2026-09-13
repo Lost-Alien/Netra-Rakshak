@@ -2,19 +2,18 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useRef, useCallback } from "react";
 import {
   Upload,
-  Play,
   Activity,
   Shield,
   Eye,
   Wifi,
   BarChart3,
-  ChevronLeft,
+  ArrowLeft,
   Loader2,
   AlertTriangle,
-  CheckCircle2,
-  XCircle,
   Zap,
-  MonitorSmartphone,
+  CheckCircle2,
+  FileText,
+  Layers,
 } from "lucide-react";
 import {
   runNetraDiagnosis,
@@ -24,18 +23,18 @@ import {
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Netra Rakshak — Clinical Decision Support Dashboard" },
+      { title: "Clinical Decision Support Dashboard — Netra Rakshak" },
       {
         name: "description",
         content:
-          "Master diagnostic station mirroring the MATLAB Clinical Telemedicine & XAI Dashboard. 5-stage autonomous retinal pipeline with Grad-CAM explainability.",
+          "Master clinical diagnostic station mirroring the MATLAB Telemedicine & XAI Suite. 5-stage autonomous retinal pipeline with Rayleigh CLAHE, Grad-CAM, and deterministic biomarkers.",
       },
     ],
   }),
   component: DashboardPage,
 });
 
-/* ─── Constants ─────────────────────────────────────────── */
+/* ─── Clinical Constants ─────────────────────────────────── */
 
 const ICDR_LABELS = [
   "Level 0: No Apparent Retinopathy (Healthy)",
@@ -45,36 +44,26 @@ const ICDR_LABELS = [
   "Level 4: Proliferative Diabetic Retinopathy",
 ];
 
-const ICDR_SHORT = ["L0", "L1", "L2", "L3", "L4"];
+const ICDR_SHORT = ["L0 Healthy", "L1 Mild", "L2 Moderate", "L3 Severe", "L4 Proliferative"];
 
 const ICDR_COLORS = [
-  "#21B35A", // Level 0: Emerald Green
-  "#339AD9", // Level 1: Sky Blue
-  "#F2A60E", // Level 2: Amber
-  "#E6661A", // Level 3: Dark Orange
-  "#D93333", // Level 4: Crimson Red
+  "#3F7D5C", // Level 0: Green
+  "#0F6F6A", // Level 1: Teal
+  "#C1652F", // Level 2: Amber
+  "#9a3412", // Level 3: Dark Amber
+  "#b91c1c", // Level 4: Crimson Red
 ];
 
-const SAMPLE_DESCRIPTIONS: Record<string, string> = {
-  "Sample Level 0": "Healthy retina",
-  "Sample Level 1": "Mild NPDR",
-  "Sample Level 2": "Moderate NPDR",
-  "Sample Level 3": "Severe NPDR",
-  "Sample Level 4": "Proliferative DR",
-};
-
-/* ─── Dashboard Page ────────────────────────────────────── */
+/* ─── Dashboard Component ───────────────────────────────── */
 
 function DashboardPage() {
-  // State
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [fileName, setFileName] = useState("N/A");
-  const [imageRes, setImageRes] = useState("N/A");
+  const [fileName, setFileName] = useState("No file chosen");
+  const [imageRes, setImageRes] = useState("--");
   const [result, setResult] = useState<NetraDiagnosisResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [statusText, setStatusText] = useState("● SYSTEM READY");
-  const [statusColor, setStatusColor] = useState("#26D96C");
+  const [statusText, setStatusText] = useState("System Ready");
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,17 +73,14 @@ function DashboardPage() {
     setFileName(file.name);
     setResult(null);
     setError(null);
-    setStatusText("● IMAGE LOADED");
-    setStatusColor("#F2A60E");
+    setStatusText("Image Loaded");
 
     const url = URL.createObjectURL(file);
     setImagePreview(url);
 
-    // Get image dimensions
     const img = new Image();
     img.onload = () => {
       setImageRes(`${img.naturalWidth} × ${img.naturalHeight} px`);
-      URL.revokeObjectURL(url);
     };
     img.src = url;
   }, []);
@@ -106,426 +92,429 @@ function DashboardPage() {
     if (file) loadImage(file);
   };
 
-  const loadSample = useCallback(async (samplePath: string, sampleName: string) => {
-    try {
-      setStatusText("● LOADING SAMPLE...");
-      setStatusColor("#339AD9");
-      const res = await fetch(samplePath);
-      const blob = await res.blob();
-      const file = new File([blob], sampleName, { type: blob.type || "image/jpeg" });
-      loadImage(file);
-    } catch {
-      setError("Failed to load sample image.");
-      setStatusText("● LOAD ERROR");
-      setStatusColor("#D93333");
-    }
-  }, [loadImage]);
+  const loadSample = useCallback(
+    async (samplePath: string, sampleName: string) => {
+      try {
+        setStatusText("Loading Sample...");
+        const res = await fetch(samplePath);
+        const blob = await res.blob();
+        const file = new File([blob], sampleName, { type: blob.type || "image/jpeg" });
+        loadImage(file);
+      } catch {
+        setError("Failed to load sample image.");
+        setStatusText("Load Error");
+      }
+    },
+    [loadImage],
+  );
 
   const runDiagnosis = async () => {
     if (!imageFile) return;
     setLoading(true);
     setError(null);
-    setStatusText("● RUNNING DIAGNOSIS...");
-    setStatusColor("#339AD9");
+    setStatusText("Running Pipeline...");
 
     try {
-      const res = await runNetraDiagnosis(imageFile, (msg) => setStatusText(`● ${msg}`));
+      const res = await runNetraDiagnosis(imageFile, (msg) => setStatusText(msg));
       setResult(res);
-      setStatusText("● DIAGNOSIS COMPLETE");
-      setStatusColor("#26D96C");
+      setStatusText("Diagnosis Complete");
     } catch (err: any) {
       setError(err.message || "Diagnosis failed.");
-      setStatusText("● ERROR");
-      setStatusColor("#D93333");
+      setStatusText("Analysis Error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Derived values
   const severityIndex = result?.icdrLevel ?? -1;
-  const severityLabel = severityIndex >= 0 ? ICDR_LABELS[severityIndex] : "AWAITING SCAN";
-  const severityColor = severityIndex >= 0 ? ICDR_COLORS[severityIndex] : "#555C6B";
-  const confidenceText = result ? `Model Confidence: ${result.confidencePercent.toFixed(2)}%` : "Model Confidence: -- %";
+  const severityLabel = severityIndex >= 0 ? ICDR_LABELS[severityIndex] : "Awaiting Retinal Scan";
   const isReferable = result?.isReferable ?? false;
-
-  // Probability distribution
   const probabilities = result?.severityDistribution?.confidences ?? [];
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: "#111927", color: "#E0E7F0", fontFamily: "Inter, sans-serif" }}
-    >
-      {/* ── Header Banner ── */}
-      <header
-        className="flex items-center justify-between px-6 py-4 shrink-0"
-        style={{ background: "#1C2638", borderBottom: "1px solid #2A3650" }}
-      >
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-white"
-            style={{ color: "#8B9DBA" }}
-          >
-            <ChevronLeft className="h-4 w-4" />
-            Home
-          </Link>
-          <div className="h-5 w-px" style={{ background: "#2A3650" }} />
-          <h1 className="text-lg font-bold tracking-wide" style={{ color: "#F0F3F8" }}>
-            NETRA RAKSHAK
-            <span className="font-normal ml-2" style={{ color: "#8B9DBA" }}>|</span>
-            <span className="font-normal ml-2 text-sm" style={{ color: "#8B9DBA" }}>
-              Clinical Decision Support System
+    <div className="min-h-screen flex flex-col bg-[var(--color-paper-alt)] text-[var(--color-ink)] font-sans antialiased">
+      {/* ── Console Header ── */}
+      <header className="border-b border-[var(--color-gray-line)] bg-[var(--color-paper)] sticky top-0 z-30 px-6 py-3.5">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 text-[14px] font-medium text-[var(--color-gray)] hover:text-[var(--color-ink)] transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" /> Home
+            </Link>
+            <span className="h-4 w-px bg-[var(--color-gray-line)]" />
+            <div className="flex items-center gap-2.5">
+              <Activity className="h-5 w-5 text-[var(--color-teal)]" />
+              <span className="font-serif text-xl font-semibold text-[var(--color-ink)] tracking-tight">
+                Netra Rakshak
+              </span>
+              <span className="text-[var(--color-gray-line)]">|</span>
+              <span className="font-sans text-xs uppercase tracking-wider font-semibold text-[var(--color-gray)]">
+                Clinical Decision Support Station
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs">
+            <span className="hidden md:inline text-[var(--color-gray)]">
+              MathWorks SIH26038 • Edge-XAI Telemedicine Pipeline
             </span>
-          </h1>
-        </div>
-        <div className="flex items-center gap-6 text-xs">
-          <span style={{ color: "#8B9DBA" }}>
-            MathWorks SIH26038 | Edge-XAI Telemedicine Pipeline
-          </span>
-          <span className="font-bold" style={{ color: statusColor }}>
-            {statusText}
-          </span>
+            <span
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+                result
+                  ? isReferable
+                    ? "bg-[#C1652F]/10 text-[#C1652F] border-[#C1652F]/30"
+                    : "bg-[#3F7D5C]/10 text-[#3F7D5C] border-[#3F7D5C]/30"
+                  : loading
+                    ? "bg-[#0F6F6A]/10 text-[#0F6F6A] border-[#0F6F6A]/30"
+                    : "bg-[var(--color-paper-alt)] text-[var(--color-gray)] border-[var(--color-gray-line)]"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  loading ? "bg-[var(--color-teal)] animate-pulse" : result ? (isReferable ? "bg-[#C1652F]" : "bg-[#3F7D5C]") : "bg-[var(--color-gray)]"
+                }`}
+              />
+              {statusText}
+            </span>
+          </div>
         </div>
       </header>
 
-      {/* ── Main Grid: 3 columns ── */}
-      <div
-        className="flex-1 grid gap-3 p-3 overflow-hidden"
-        style={{ gridTemplateColumns: "340px 1fr 380px", gridTemplateRows: "1fr 35px" }}
-      >
-        {/* ─── LEFT SIDEBAR ─── */}
-        <div className="flex flex-col gap-3 overflow-y-auto" style={{ gridRow: "1" }}>
-          {/* Upload Button */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-          <button
-            onClick={handleFileSelect}
-            className="flex items-center justify-center gap-2 py-3.5 px-4 text-sm font-bold rounded transition-colors cursor-pointer"
-            style={{ background: "#2E3D56", color: "white" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "#3A4D69")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "#2E3D56")}
-          >
-            <Upload className="h-4 w-4" />
-            📂 Select Patient Fundus Scan
-          </button>
-
-          {/* Quick Clinical Samples Dropdown */}
-          <select
-            defaultValue=""
-            onChange={(e) => {
-              const val = e.target.value;
-              if (!val) return;
-              const [path, name] = val.split("|");
-              loadSample(path, name);
-            }}
-            className="w-full py-3 px-3 text-xs font-semibold rounded cursor-pointer border transition-colors outline-none"
-            style={{
-              background: "#1A2536",
-              color: "#D0DBEB",
-              borderColor: "#2B3A52",
-            }}
-          >
-            <option value="">-- Quick Clinical Samples --</option>
-            <option value="/samples/sample_level_0.png|Sample Level 0 (Healthy)">
-              Sample Level 0 (Healthy Retina)
-            </option>
-            <option value="/samples/sample_level_1.png|Sample Level 1 (Mild NPDR)">
-              Sample Level 1 (Mild NPDR)
-            </option>
-            <option value="/samples/16_right.jpeg|16_right.jpeg (Moderate NPDR)">
-              Sample Level 2: 16_right.jpeg (Moderate NPDR)
-            </option>
-            <option value="/samples/sample_level_3.png|Sample Level 3 (Severe NPDR)">
-              Sample Level 3 (Severe NPDR)
-            </option>
-            <option value="/samples/sample_level_4.png|Sample Level 4 (Proliferative DR)">
-              Sample Level 4 (Proliferative DR)
-            </option>
-          </select>
-
-          {/* Run Diagnosis Button */}
-          <button
-            onClick={runDiagnosis}
-            disabled={!imageFile || loading}
-            className="flex items-center justify-center gap-2 py-4 px-4 text-sm font-bold rounded transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ background: "#1485F2", color: "white" }}
-            onMouseEnter={(e) => {
-              if (!e.currentTarget.disabled) e.currentTarget.style.background = "#1070D0";
-            }}
-            onMouseLeave={(e) => {
-              if (!e.currentTarget.disabled) e.currentTarget.style.background = "#1485F2";
-            }}
-          >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4" />
-            )}
-            {loading ? "DIAGNOSING..." : "⚡ RUN CLINICAL DIAGNOSIS"}
-          </button>
-
-          {error && (
-            <div
-              className="flex items-start gap-2 p-3 rounded text-xs"
-              style={{ background: "#2D1A1A", color: "#F28B8B", border: "1px solid #5C2222" }}
-            >
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Metadata Card */}
-          <DashCard title="PATIENT & REPOSITORY METADATA" icon={<Eye className="h-3.5 w-3.5" />}>
-            <MetaRow label="Record ID" value={fileName} />
-            <MetaRow label="Resolution" value={imageRes} />
-            <MetaRow label="Camera Spec" value="45° Mydriatic/Non-Mydriatic" />
-          </DashCard>
-
-          {/* IQA Telemetry Card */}
-          <DashCard
-            title="PHASE 1: IMAGE QUALITY ASSESSMENT (IQA)"
-            icon={<Shield className="h-3.5 w-3.5" />}
-          >
-            <MetaRow
-              label="Sharpness Index"
-              value={result?.sharpnessIndex ?? "--"}
-            />
-            <MetaRow
-              label="Illumination Balance"
-              value={result?.illuminationBalance ?? "--"}
-            />
-            <MetaRow
-              label="Quality Decision"
-              value={result?.qualityDecision ?? "PENDING SCAN"}
-              valueColor={result?.qualityPassed ? "#26D96C" : "#F2BF0E"}
-              bold
-            />
-          </DashCard>
-
-          {/* Image Thumbnail Preview */}
-          {imagePreview && (
-            <div className="rounded overflow-hidden border" style={{ borderColor: "#2A3650" }}>
-              <img
-                src={imagePreview}
-                alt="Loaded fundus scan"
-                className="w-full h-auto"
-                style={{ maxHeight: 200, objectFit: "contain", background: "#0D1117" }}
+      {/* ── Main Dashboard Workspace ── */}
+      <main className="flex-1 p-4 lg:p-6 mx-auto max-w-[1500px] w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* ─── LEFT COLUMN: Ingestion, Controls, Metadata & IQA (3 cols) ─── */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Image Ingestion Card */}
+            <EditorialCard title="Patient Scan Ingestion" icon={<Upload className="h-3.5 w-3.5 text-[var(--color-teal)]" />}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleFileChange}
               />
-            </div>
-          )}
-        </div>
-
-        {/* ─── CENTER PANEL: 2×2 Diagnostic Quadrants ─── */}
-        <div
-          className="grid gap-2 overflow-hidden"
-          style={{
-            gridTemplateColumns: "1fr 1fr",
-            gridTemplateRows: "1fr 1fr",
-            gridRow: "1",
-          }}
-        >
-          <QuadrantPane
-            title="1. Primary Optical Acquisition"
-            imageUrl={result?.primaryOpticalUrl ?? imagePreview}
-            placeholder="Load a retinal scan..."
-          />
-          <QuadrantPane
-            title="2. Rayleigh Green-Channel CLAHE"
-            imageUrl={result?.rayleighClaheUrl}
-            placeholder="Run diagnosis to see CLAHE..."
-          />
-          <QuadrantPane
-            title="3. Phase 4: Grad-CAM Saliency Map"
-            imageUrl={result?.gradCamSaliencyUrl}
-            placeholder="Run diagnosis to see Grad-CAM..."
-            tint="gradcam"
-          />
-          <QuadrantPane
-            title="4. Phase 2: Biomarker Segmentation Map"
-            imageUrl={result?.biomarkerSegmentationUrl}
-            placeholder="Run diagnosis to see biomarkers..."
-          />
-        </div>
-
-        {/* ─── RIGHT PANEL ─── */}
-        <div className="flex flex-col gap-3 overflow-y-auto" style={{ gridRow: "1" }}>
-          {/* Severity Verdict Card */}
-          <DashCard
-            title="PHASE 3: CLINICAL SEVERITY RATING (ICDR)"
-            icon={<Activity className="h-3.5 w-3.5" />}
-          >
-            <div className="flex flex-col items-center gap-2 py-2">
-              <div
-                className="w-full text-center py-3 px-4 rounded text-sm font-bold tracking-wide"
-                style={{ background: severityColor, color: "white" }}
+              <button
+                onClick={handleFileSelect}
+                className="w-full inline-flex items-center justify-center gap-2 py-2.5 px-3 text-xs font-medium rounded border border-[var(--color-gray-line)] bg-[var(--color-paper)] text-[var(--color-ink)] hover:bg-[var(--color-paper-alt)] hover:border-[var(--color-teal)] transition-colors cursor-pointer"
               >
-                {severityLabel}
+                <Upload className="h-3.5 w-3.5 text-[var(--color-teal)]" />
+                Select Patient Fundus Scan
+              </button>
+
+              {/* Quick Clinical Samples Dropdown */}
+              <div className="mt-2.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-[var(--color-gray)] mb-1">
+                  Quick Benchmark Samples
+                </label>
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (!val) return;
+                    const [path, name] = val.split("|");
+                    loadSample(path, name);
+                  }}
+                  className="w-full py-2 px-2.5 text-xs font-medium rounded border border-[var(--color-gray-line)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-teal)] transition-colors cursor-pointer"
+                >
+                  <option value="">-- Quick Clinical Samples --</option>
+                  <option value="/samples/sample_level_0.png|Sample Level 0 (Healthy)">
+                    Sample Level 0: Healthy Retina
+                  </option>
+                  <option value="/samples/sample_level_1.png|Sample Level 1 (Mild NPDR)">
+                    Sample Level 1: Mild NPDR
+                  </option>
+                  <option value="/samples/16_right.jpeg|16_right.jpeg (Moderate NPDR)">
+                    Sample Level 2: 16_right.jpeg (Moderate NPDR)
+                  </option>
+                  <option value="/samples/sample_level_3.png|Sample Level 3 (Severe NPDR)">
+                    Sample Level 3: Severe NPDR
+                  </option>
+                  <option value="/samples/sample_level_4.png|Sample Level 4 (Proliferative DR)">
+                    Sample Level 4: Proliferative DR
+                  </option>
+                </select>
               </div>
-              <span className="text-xs" style={{ color: "#B0BDD0" }}>
-                {confidenceText}
-              </span>
-              <div
-                className="w-full text-center py-2 px-4 rounded text-xs font-bold tracking-widest"
-                style={{
-                  background: isReferable ? "#D93333" : result ? "#218B4A" : "#1C2638",
-                  color: "white",
-                }}
+
+              {/* Run Diagnosis Button */}
+              <button
+                onClick={runDiagnosis}
+                disabled={!imageFile || loading}
+                className="mt-3.5 w-full inline-flex items-center justify-center gap-2 py-3 px-4 text-xs font-semibold uppercase tracking-wider text-white bg-[var(--color-teal)] hover:bg-[#0c5854] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer shadow-xs"
               >
-                {result
-                  ? isReferable
-                    ? "TRIAGE: REFERRAL REQUIRED (LEVEL 2+)"
-                    : "TRIAGE: NON-REFERABLE (LOCAL CLEARANCE)"
-                  : "TRIAGE STATUS: PENDING"}
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
+                {loading ? "Diagnosing Retina..." : "Run Clinical Diagnosis"}
+              </button>
+
+              {error && (
+                <div className="mt-3 flex items-start gap-2 p-2.5 rounded bg-red-50 text-red-700 border border-red-200 text-xs">
+                  <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+                  <span>{error}</span>
+                </div>
+              )}
+            </EditorialCard>
+
+            {/* Patient & Repository Metadata */}
+            <EditorialCard title="Patient & Repository Metadata" icon={<Eye className="h-3.5 w-3.5 text-[var(--color-teal)]" />}>
+              <MetadataItem label="Record ID" value={fileName} />
+              <MetadataItem label="Resolution" value={imageRes} />
+              <MetadataItem label="Camera Spec" value="45° Mydriatic / Non-Mydriatic" />
+            </EditorialCard>
+
+            {/* Phase 1: IQA Telemetry */}
+            <EditorialCard title="Phase 1: Quality Gate (IQA)" icon={<Shield className="h-3.5 w-3.5 text-[var(--color-teal)]" />}>
+              <MetadataItem
+                label="Sharpness Index"
+                value={result?.sharpnessIndex ?? "--"}
+              />
+              <MetadataItem
+                label="Illumination Balance"
+                value={result?.illuminationBalance ?? "--"}
+              />
+              <div className="pt-2 border-t border-[var(--color-gray-line)]/60 flex items-center justify-between text-xs">
+                <span className="text-[var(--color-gray)] font-medium">Quality Decision:</span>
+                <span
+                  className={`font-semibold ${
+                    result?.qualityPassed
+                      ? "text-[var(--color-green)]"
+                      : result
+                        ? "text-[var(--color-amber)]"
+                        : "text-[var(--color-gray)]"
+                  }`}
+                >
+                  {result?.qualityDecision ?? "Pending Scan"}
+                </span>
+              </div>
+            </EditorialCard>
+
+            {/* Scan Thumbnail */}
+            {imagePreview && (
+              <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-2 rounded">
+                <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-gray)] mb-1.5">
+                  Input Scan Preview
+                </div>
+                <div className="bg-[#0B0F17] rounded overflow-hidden flex items-center justify-center max-h-[160px]">
+                  <img
+                    src={imagePreview}
+                    alt="Loaded patient scan"
+                    className="max-h-[160px] w-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ─── CENTER COLUMN: 2×2 Diagnostic Inspection Matrix (5 cols) ─── */}
+          <div className="lg:col-span-5 space-y-3">
+            <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] p-3 rounded">
+              <div className="flex items-center justify-between border-b border-[var(--color-gray-line)] pb-2.5 mb-3">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-[var(--color-teal)]" />
+                  <h2 className="font-serif text-base font-semibold text-[var(--color-ink)]">
+                    Multi-Modal Inspection Matrix
+                  </h2>
+                </div>
+                <span className="text-[11px] font-mono text-[var(--color-gray)]">
+                  4-Quadrant Telemetry
+                </span>
+              </div>
+
+              {/* 2×2 Grid */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <QuadrantCard
+                  number="1"
+                  title="Primary Optical Scan"
+                  imageUrl={result?.primaryOpticalUrl ?? imagePreview}
+                  placeholder="Load a patient scan..."
+                />
+                <QuadrantCard
+                  number="2"
+                  title="Rayleigh Green CLAHE"
+                  imageUrl={result?.rayleighClaheUrl}
+                  placeholder="Run diagnosis for CLAHE..."
+                />
+                <QuadrantCard
+                  number="3"
+                  title="Grad-CAM Saliency Map"
+                  imageUrl={result?.gradCamSaliencyUrl}
+                  placeholder="Run diagnosis for Grad-CAM..."
+                />
+                <QuadrantCard
+                  number="4"
+                  title="Biomarker Segmentation"
+                  imageUrl={result?.biomarkerSegmentationUrl}
+                  placeholder="Run diagnosis for lesions..."
+                />
+              </div>
+
+              <div className="mt-2.5 text-[11px] text-[var(--color-gray)] flex items-center justify-between">
+                <span>Green-channel Rayleigh CLAHE contrast enhancement</span>
+                <span className="font-mono">SIH 26038</span>
               </div>
             </div>
-          </DashCard>
+          </div>
 
-          {/* Biomarker Quantitative Summary */}
-          <DashCard
-            title="PHASE 2: DETERMINISTIC RETINAL BIOMARKERS"
-            icon={<Eye className="h-3.5 w-3.5" />}
-          >
-            <MetaRow label="Sub-pixel Microaneurysms" value={result?.subPixelMAs ?? "--"} />
-            <MetaRow label="Blot Hemorrhages" value={result?.blotHemorrhages ?? "--"} />
-            <MetaRow label="Hard Exudates Burden" value={result?.hardExudatesBurden ?? "--"} />
-            <MetaRow
-              label="Vascular Density (Target: 10-15%)"
-              value={result?.vascularDensity ?? "--"}
-            />
-          </DashCard>
-
-          {/* Telemedicine Telemetry Card */}
-          <DashCard
-            title="PHASE 5: DISTRICT TELEMEDICINE DISPATCH"
-            icon={<Wifi className="h-3.5 w-3.5" />}
-          >
-            <MetaRow
-              label="Transmission Action"
-              value={
-                result
-                  ? isReferable
-                    ? "UPLINK DISPATCH → DISTRICT HOSP."
-                    : "LOCAL ARCHIVE → DISCHARGED AT PHC"
-                  : "--"
-              }
-              valueColor={result ? (isReferable ? "#F28B8B" : "#4DD98B") : undefined}
-            />
-            <MetaRow
-              label="Uplink Payload Size"
-              value={
-                result
-                  ? isReferable
-                    ? "0.65 MB (Compressed XAI + JSON)"
-                    : "0.00 MB (98.7% Bandwidth Conserved)"
-                  : "--"
-              }
-            />
-            <MetaRow
-              label="2G/3G Upload Time"
-              value={
-                result
-                  ? isReferable
-                    ? "3.65 sec (over 1.5 Mbps Cellular)"
-                    : "0.00 sec (No Rural Uplink Used)"
-                  : "--"
-              }
-            />
-            <MetaRow
-              label="Doctor Queue Priority"
-              value={
-                result
-                  ? severityIndex >= 4
-                    ? "P1 - EMERGENCY OPHTHALMIC REVIEW"
-                    : isReferable
-                      ? "P2 - ROUTINE SPECIALIST QUEUE"
-                      : "P3 - ROUTINE ANNUAL RE-SCREEN"
-                  : "--"
-              }
-              valueColor={
-                result
-                  ? severityIndex >= 4
-                    ? "#FF4444"
-                    : isReferable
-                      ? "#F2A60E"
-                      : "#8B9DBA"
-                  : undefined
-              }
-              bold
-            />
-          </DashCard>
-
-          {/* 5-Stage Probability Distribution */}
-          <DashCard
-            title="5-STAGE PROBABILITY DISTRIBUTION"
-            icon={<BarChart3 className="h-3.5 w-3.5" />}
-          >
-            <div className="flex flex-col gap-2 pt-1">
-              {ICDR_SHORT.map((label, i) => {
-                const prob = probabilities[i]?.confidence ?? 0;
-                const pct = (prob * 100).toFixed(1);
-                const isMax = i === severityIndex;
-                return (
-                  <div key={label} className="flex items-center gap-2">
-                    <span
-                      className="text-[10px] font-mono w-6 text-right shrink-0"
-                      style={{ color: isMax ? "#F0F3F8" : "#6B7A90" }}
-                    >
-                      {label}
-                    </span>
-                    <div
-                      className="flex-1 h-5 rounded-sm overflow-hidden relative"
-                      style={{ background: "#1C2638" }}
-                    >
-                      <div
-                        className="h-full rounded-sm transition-all duration-700 ease-out"
-                        style={{
-                          width: `${Math.max(prob * 100, 0.5)}%`,
-                          background: isMax
-                            ? ICDR_COLORS[i]
-                            : `${ICDR_COLORS[i]}66`,
-                        }}
-                      />
-                    </div>
-                    <span
-                      className="text-[10px] font-mono w-12 text-right shrink-0"
-                      style={{ color: isMax ? "#F0F3F8" : "#6B7A90" }}
-                    >
-                      {pct}%
-                    </span>
+          {/* ─── RIGHT COLUMN: Clinical Severity, Biomarkers & Telemedicine (4 cols) ─── */}
+          <div className="lg:col-span-4 space-y-4">
+            {/* Phase 3: Clinical Severity Rating (ICDR) */}
+            <EditorialCard
+              title="Phase 3: Clinical Severity Rating (ICDR)"
+              icon={<Activity className="h-3.5 w-3.5 text-[var(--color-teal)]" />}
+            >
+              <div className="space-y-3 pt-1">
+                <div>
+                  <div className="text-[11px] text-[var(--color-gray)] font-medium">
+                    Diagnostic Consensus
                   </div>
-                );
-              })}
-            </div>
-          </DashCard>
-        </div>
+                  <div className="font-serif text-lg font-semibold text-[var(--color-ink)] leading-snug mt-0.5">
+                    {severityLabel}
+                  </div>
+                  <div className="text-xs font-mono text-[var(--color-gray)] mt-0.5">
+                    {result ? `Model Confidence: ${result.confidencePercent.toFixed(2)}%` : "Confidence: --"}
+                  </div>
+                </div>
 
-        {/* ── Footer Status Bar ── */}
-        <footer
-          className="col-span-3 flex items-center justify-between px-4 rounded text-[11px]"
-          style={{ background: "#141C2B", color: "#4A5B73", gridRow: "2" }}
-        >
-          <span>
-            Netra Rakshak CDSS v2.6 | Validated against APTOS, DRIVE, IDRiD, & Messidor-2 cohorts
-          </span>
-          <span style={{ color: "#3F7D5C" }}>
-            Deep Learning Ensemble Engine: netra_rakshak.onnx [Active]
-          </span>
-        </footer>
-      </div>
+                {/* Referral Triage Status Banner */}
+                <div
+                  className={`w-full py-2.5 px-3 text-xs font-semibold tracking-wide uppercase text-center rounded transition-colors ${
+                    result
+                      ? isReferable
+                        ? "bg-[#C1652F] text-white"
+                        : "bg-[#3F7D5C] text-white"
+                      : "bg-[var(--color-paper-alt)] text-[var(--color-gray)] border border-[var(--color-gray-line)]"
+                  }`}
+                >
+                  {result
+                    ? isReferable
+                      ? "Triage: Referral Required (Level 2+)"
+                      : "Triage: Non-Referable (Local Clearance)"
+                    : "Triage Status: Pending Scan"}
+                </div>
+              </div>
+            </EditorialCard>
+
+            {/* Phase 2: Retinal Biomarkers */}
+            <EditorialCard
+              title="Phase 2: Deterministic Retinal Biomarkers"
+              icon={<Eye className="h-3.5 w-3.5 text-[var(--color-teal)]" />}
+            >
+              <MetadataItem label="Sub-pixel MAs" value={result?.subPixelMAs ?? "--"} />
+              <MetadataItem label="Blot Hemorrhages" value={result?.blotHemorrhages ?? "--"} />
+              <MetadataItem label="Hard Exudates Burden" value={result?.hardExudatesBurden ?? "--"} />
+              <MetadataItem
+                label="Vascular Density (Target: 10-15%)"
+                value={result?.vascularDensity ?? "--"}
+              />
+            </EditorialCard>
+
+            {/* Phase 5: Telemedicine Dispatch */}
+            <EditorialCard
+              title="Phase 5: Telemedicine Dispatch"
+              icon={<Wifi className="h-3.5 w-3.5 text-[var(--color-teal)]" />}
+            >
+              <MetadataItem
+                label="Transmission Action"
+                value={
+                  result
+                    ? isReferable
+                      ? "Uplink Dispatch → District Hospital"
+                      : "Local Archive → Discharged at PHC"
+                    : "--"
+                }
+                highlight={result ? (isReferable ? "amber" : "green") : undefined}
+              />
+              <MetadataItem
+                label="Uplink Payload Size"
+                value={result?.payloadSize ?? (result ? (isReferable ? "0.65 MB (Compressed XAI)" : "0.00 MB") : "--")}
+              />
+              <MetadataItem
+                label="2G/3G Upload Time"
+                value={result?.networkLatency ?? "--"}
+              />
+              <div className="pt-2 border-t border-[var(--color-gray-line)]/60 flex items-center justify-between text-xs">
+                <span className="text-[var(--color-gray)] font-medium">Queue Priority:</span>
+                <span
+                  className={`font-semibold ${
+                    result
+                      ? severityIndex >= 4
+                        ? "text-red-600"
+                        : isReferable
+                          ? "text-[var(--color-amber)]"
+                          : "text-[var(--color-gray)]"
+                      : "text-[var(--color-gray)]"
+                  }`}
+                >
+                  {result?.doctorQueuePriority ?? "--"}
+                </span>
+              </div>
+            </EditorialCard>
+
+            {/* 5-Stage Probability Distribution */}
+            <EditorialCard
+              title="5-Stage Probability Distribution"
+              icon={<BarChart3 className="h-3.5 w-3.5 text-[var(--color-teal)]" />}
+            >
+              <div className="space-y-2 pt-1">
+                {ICDR_SHORT.map((label, i) => {
+                  const prob = probabilities[i]?.confidence ?? 0;
+                  const pct = (prob * 100).toFixed(1);
+                  const isMax = i === severityIndex;
+                  return (
+                    <div key={label} className="text-xs">
+                      <div className="flex items-center justify-between font-mono text-[11px] mb-1">
+                        <span className={isMax ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-gray)]"}>
+                          {label}
+                        </span>
+                        <span className={isMax ? "font-semibold text-[var(--color-ink)]" : "text-[var(--color-gray)]"}>
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full bg-[var(--color-paper-alt)] border border-[var(--color-gray-line)] rounded-sm overflow-hidden">
+                        <div
+                          className="h-full rounded-sm transition-all duration-500 ease-out"
+                          style={{
+                            width: `${Math.max(prob * 100, 0.5)}%`,
+                            backgroundColor: ICDR_COLORS[i],
+                            opacity: isMax ? 1 : 0.6,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </EditorialCard>
+          </div>
+        </div>
+      </main>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-[var(--color-gray-line)] bg-[var(--color-paper)] py-4 px-6 text-xs text-[var(--color-gray)]">
+        <div className="mx-auto max-w-[1500px] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div>
+            Netra Rakshak CDSS v2.6 • Validated against APTOS, DRIVE, IDRiD, & Messidor-2 cohorts
+          </div>
+          <div className="flex items-center gap-4">
+            <span className="inline-flex items-center gap-1.5 text-[var(--color-green)] font-medium">
+              <CheckCircle2 className="h-3.5 w-3.5" /> MATLAB Trained ResNet-50 Pipeline
+            </span>
+            <span>© {new Date().getFullYear()} Team Netra Rakshak</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
-/* ─── Reusable Dashboard Sub-Components ─────────────────── */
+/* ─── Editorial Sub-Components ───────────────────────────── */
 
-function DashCard({
+function EditorialCard({
   title,
   icon,
   children,
@@ -535,39 +524,38 @@ function DashCard({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="rounded overflow-hidden"
-      style={{ background: "#161E2E", border: "1px solid #232F44" }}
-    >
-      <div
-        className="flex items-center gap-2 px-3 py-2 text-[10px] font-bold tracking-widest uppercase"
-        style={{ color: "#7B93B8", borderBottom: "1px solid #232F44" }}
-      >
+    <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] rounded shadow-xs overflow-hidden">
+      <div className="px-3.5 py-2.5 border-b border-[var(--color-gray-line)] flex items-center gap-2 bg-[var(--color-paper)]">
         {icon}
-        {title}
+        <h3 className="font-sans text-[11px] uppercase tracking-wider font-semibold text-[var(--color-ink)]">
+          {title}
+        </h3>
       </div>
-      <div className="px-3 py-2.5 flex flex-col gap-1.5">{children}</div>
+      <div className="p-3.5 space-y-2">{children}</div>
     </div>
   );
 }
 
-function MetaRow({
+function MetadataItem({
   label,
   value,
-  valueColor,
-  bold,
+  highlight,
 }: {
   label: string;
   value: string;
-  valueColor?: string;
-  bold?: boolean;
+  highlight?: "amber" | "green";
 }) {
   return (
-    <div className="flex items-baseline justify-between gap-4 text-[11px]">
-      <span style={{ color: "#7B93B8" }}>{label}:</span>
+    <div className="flex items-baseline justify-between gap-3 text-xs">
+      <span className="text-[var(--color-gray)] font-medium shrink-0">{label}:</span>
       <span
-        className={`text-right ${bold ? "font-bold" : ""}`}
-        style={{ color: valueColor ?? "#E0E7F0" }}
+        className={`text-right font-medium truncate ${
+          highlight === "amber"
+            ? "text-[var(--color-amber)] font-semibold"
+            : highlight === "green"
+              ? "text-[var(--color-green)] font-semibold"
+              : "text-[var(--color-ink)] font-semibold"
+        }`}
       >
         {value}
       </span>
@@ -575,42 +563,33 @@ function MetaRow({
   );
 }
 
-function QuadrantPane({
+function QuadrantCard({
+  number,
   title,
   imageUrl,
   placeholder,
-  tint,
 }: {
+  number: string;
   title: string;
   imageUrl?: string | null;
   placeholder: string;
-  tint?: "gradcam";
 }) {
   return (
-    <div
-      className="rounded overflow-hidden flex flex-col"
-      style={{ background: "#0D1420", border: "1px solid #1E2A3E" }}
-    >
-      <div
-        className="px-3 py-1.5 text-[10px] font-medium tracking-wide shrink-0"
-        style={{ color: "#D9E0EB" }}
-      >
-        {title}
+    <div className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] rounded overflow-hidden flex flex-col">
+      <div className="px-2.5 py-1.5 border-b border-[var(--color-gray-line)] bg-[var(--color-paper)] flex items-center justify-between text-[11px] font-semibold text-[var(--color-ink)]">
+        <span className="truncate">
+          {number}. {title}
+        </span>
       </div>
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+      <div className="aspect-square bg-[#0B0F17] relative flex items-center justify-center overflow-hidden">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={title}
             className="w-full h-full object-contain"
-            style={
-              tint === "gradcam"
-                ? { filter: "contrast(1.2) saturate(1.3)" }
-                : undefined
-            }
           />
         ) : (
-          <span className="text-xs" style={{ color: "#3A4D69" }}>
+          <span className="text-xs text-[var(--color-gray)] px-3 text-center">
             {placeholder}
           </span>
         )}
