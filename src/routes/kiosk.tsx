@@ -18,7 +18,6 @@ import {
   Stethoscope,
   ChevronRight,
   Info,
-  ExternalLink,
   Sparkles,
   Layers,
   Activity,
@@ -29,7 +28,6 @@ import fundus from "@/assets/fundus.jpg";
 import {
   runNetraDiagnosis,
   NetraDiagnosisResult,
-  DEFAULT_MATLAB_CLOUD_URL,
 } from "@/lib/netra-model";
 
 export const Route = createFileRoute("/kiosk")({
@@ -164,7 +162,7 @@ function KioskPage() {
     setStage("processing");
     setErrorMessage(null);
     setPipelineStep(1);
-    setProgressText("Initializing MATLAB® 5-Stage Retinal Diagnostic Pipeline...");
+    setProgressText("Initializing 5-Stage Retinal Diagnostic Pipeline...");
 
     try {
       // Step 1: Quality Check & Illumination
@@ -428,7 +426,7 @@ function KioskPage() {
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[13px] text-[var(--color-gray)] border-t border-[var(--color-gray-line)] pt-3">
                     <div className="flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-[var(--color-teal)]" />
-                      <span>MATLAB® Diagnostic Engine: Connected (<strong>MathWorks SIH 26038</strong>)</span>
+                      <span>Diagnostic AI Engine: Connected (<strong>SIH 26038</strong>)</span>
                     </div>
                     <button
                       type="button"
@@ -459,7 +457,7 @@ function KioskPage() {
                   Running Deep Retinal Diagnostic Pipeline
                 </h3>
                 <p className="text-[13px] text-[var(--color-gray)] mt-1">
-                  MATLAB® Clinical Engine • MathWorks SIH 26038 Pipeline
+                  Clinical Diagnostic Engine • SIH 26038 Pipeline
                 </p>
 
                 <div className="mt-6 max-w-md mx-auto space-y-2.5 text-[13px] font-mono text-left bg-[var(--color-paper-alt)] p-4 border border-[var(--color-gray-line)]">
@@ -507,7 +505,7 @@ function KioskPage() {
                         Point-of-Care Triage Verdict
                       </span>
                       <span className="text-[11px] font-mono text-[var(--color-gray)]">
-                        • {diagnosis?.executionTimeMs ? `${(diagnosis.executionTimeMs / 1000).toFixed(2)}s roundtrip` : "MATLAB Engine"}
+                        • {diagnosis?.executionTimeMs ? `${(diagnosis.executionTimeMs / 1000).toFixed(2)}s roundtrip` : "AI Engine"}
                       </span>
                     </div>
                     <h2 className="font-serif text-[22px] font-semibold text-[var(--color-ink)] mt-0.5">
@@ -516,14 +514,6 @@ function KioskPage() {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <a
-                      href={DEFAULT_MATLAB_CLOUD_URL}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-[var(--color-gray)] hover:text-[var(--color-teal)] underline"
-                    >
-                      MATLAB Cloud App <ExternalLink className="h-3 w-3" />
-                    </a>
                     {diagnosis?.isUrgent ? (
                       <span className="border border-[#b91c1c]/40 bg-[#b91c1c]/10 px-3 py-1 text-[13px] font-mono font-bold text-[#b91c1c]">
                         🚨 URGENT REFERRAL ESCALATION

@@ -1,25 +1,9 @@
 /**
- * NETRA RAKSHAK — MATLAB® Web App Server & Cloud Deployment Module
- * MathWorks Smart India Hackathon (SIH 26038)
- *
- * Connects the Netra Rakshak frontend to the MATLAB Web App Server
- * hosted on AWS EC2 / Azure Virtual Machine reference architecture.
- *
- * MATLAB Project Directory: D:\Lost_Projects\Netra_Rakshak_Model
- * Master Dashboard: step11_master_dashboard.m
- * Models: trained_dr_classifier.mat, netra_rakshak.onnx
+ * NETRA RAKSHAK — Deep Learning Retinal Diagnostic Engine Module
+ * Smart India Hackathon (SIH 26038)
  */
 
-export const DEFAULT_MATLAB_CLOUD_URL =
-  import.meta.env["VITE_MATLAB_WEBAPP_URL"] ||
-  "https://matlab-cloud.netra-rakshak.org/webapps/home";
-
 export const NETRA_API_URL = import.meta.env["VITE_NETRA_API_URL"] || "";
-
-export const MATLAB_AWS_REF_ARCH =
-  "https://github.com/mathworks-ref-arch/matlab-web-app-server-on-aws";
-export const MATLAB_AZURE_REF_ARCH =
-  "https://github.com/mathworks-ref-arch/matlab-web-app-server-on-azure";
 
 export interface ProbabilityConfidence {
   label: string;
