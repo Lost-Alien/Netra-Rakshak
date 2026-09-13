@@ -211,6 +211,13 @@ function LandingPage() {
           </div>
           <div className="flex items-center gap-3 text-[14px]">
             <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-1.5 font-medium text-[var(--color-ink)] hover:text-[var(--color-teal)] transition-colors px-2.5 py-1.5"
+            >
+              <Activity className="h-4 w-4 text-[var(--color-teal)]" />
+              <span className="hidden sm:inline">Clinical</span> Dashboard
+            </Link>
+            <Link
               to="/kiosk"
               className="inline-flex items-center gap-1.5 font-medium text-[var(--color-ink)] hover:text-[var(--color-teal)] transition-colors px-2.5 py-1.5"
             >
@@ -241,17 +248,24 @@ function LandingPage() {
               </p>
               
               <div className="mt-10 flex flex-wrap items-center gap-4">
-                <a
-                  href="#live-demo"
+                <Link
+                  to="/dashboard"
                   className="inline-flex items-center justify-center gap-2 bg-[var(--color-teal)] px-6 py-3.5 text-[16px] font-medium text-white transition-colors hover:bg-[#0c5854]"
                 >
-                  Try the live demo
+                  <Activity className="h-4 w-4" />
+                  Clinical Dashboard
+                </Link>
+                <a
+                  href="#live-demo"
+                  className="inline-flex items-center justify-center gap-2 border border-[var(--color-gray-line)] px-6 py-3.5 text-[16px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--color-paper-alt)]"
+                >
+                  Quick Emulator
                 </a>
                 <Link
                   to="/research"
                   className="inline-flex items-center justify-center gap-2 border border-[var(--color-gray-line)] px-6 py-3.5 text-[16px] font-medium text-[var(--color-ink)] transition-colors hover:bg-[var(--color-paper-alt)]"
                 >
-                  Read the technical plan
+                  Technical Plan
                 </Link>
               </div>
             </div>
@@ -1008,6 +1022,7 @@ function LandingPage() {
               </h2>
               <div className="flex flex-col md:items-end gap-3 text-[15px]">
                 <a href="https://github.com/Lost-Alien/Netra-Rakshak" target="_blank" rel="noreferrer" className="text-[var(--color-teal)] hover:underline">GitHub Repository</a>
+                <Link to="/dashboard" className="text-[var(--color-teal)] hover:underline">Clinical Decision Support Dashboard</Link>
                 <Link to="/research" className="text-[var(--color-teal)] hover:underline">Full Technical Plan</Link>
                 <Link to="/kiosk" className="text-[var(--color-teal)] hover:underline">PHC Kiosk Intake Station</Link>
                 <Link to="/doctor" className="text-[var(--color-teal)] hover:underline">Specialist Validation Console</Link>
