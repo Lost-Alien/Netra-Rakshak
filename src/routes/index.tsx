@@ -633,21 +633,47 @@ function LandingPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <select
+                      defaultValue=""
+                      disabled={liveLoading}
+                      onChange={async (e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        try {
+                          const res = await fetch(val);
+                          const blob = await res.blob();
+                          const fname = val.split("/").pop() || "sample.jpg";
+                          const testFile = new File([blob], fname, { type: blob.type || "image/jpeg" });
+                          handleLiveDiagnose(testFile);
+                        } catch (err: any) {
+                          setLiveError("Failed to load sample: " + err.message);
+                        }
+                      }}
+                      className="border border-[var(--color-gray-line)] bg-[var(--color-paper)] px-3 py-2 text-[13px] font-medium text-[var(--color-ink)] focus:outline-none focus:border-[var(--color-teal)] transition-colors cursor-pointer"
+                    >
+                      <option value="">-- Quick Clinical Samples --</option>
+                      <option value="/samples/16_right.jpeg">16_right.jpeg (Level 2: Moderate NPDR)</option>
+                      <option value="/samples/sample_level_0.png">Sample Level 0: Healthy Retina</option>
+                      <option value="/samples/sample_level_1.png">Sample Level 1: Mild NPDR</option>
+                      <option value="/samples/sample_level_3.png">Sample Level 3: Severe NPDR</option>
+                      <option value="/samples/sample_level_4.png">Sample Level 4: Proliferative DR</option>
+                    </select>
+
                     <button
                       type="button"
                       disabled={liveLoading}
                       onClick={async () => {
                         try {
-                          const res = await fetch(fundusImage);
+                          const res = await fetch("/samples/16_right.jpeg");
                           const blob = await res.blob();
-                          const testFile = new File([blob], "sample-benchmark-scan.jpg", { type: "image/jpeg" });
+                          const testFile = new File([blob], "16_right.jpeg", { type: "image/jpeg" });
                           handleLiveDiagnose(testFile);
                         } catch (err: any) {
                           setLiveError("Failed to load sample image: " + err.message);
                         }
                       }}
-                      className="bg-[var(--color-teal)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0c5854] transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="bg-[var(--color-teal)] px-4 py-2 text-[13px] font-medium text-white hover:bg-[#0c5854] transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                     >
                       {liveLoading ? (
                         <>
@@ -655,7 +681,7 @@ function LandingPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="h-4 w-4" /> Run Benchmark Scan
+                          <Sparkles className="h-4 w-4" /> Run 16_right.jpeg Scan
                         </>
                       )}
                     </button>
@@ -664,7 +690,7 @@ function LandingPage() {
                       type="button"
                       disabled={liveLoading}
                       onClick={() => liveInputRef.current?.click()}
-                      className="border border-[var(--color-gray-line)] px-4 py-2 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper-alt)] transition-colors disabled:opacity-50 flex items-center gap-2"
+                      className="border border-[var(--color-gray-line)] px-4 py-2 text-[13px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper-alt)] transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                     >
                       <UploadCloud className="h-4 w-4 text-[var(--color-gray)]" />
                       Upload Custom Fundus
