@@ -35,15 +35,10 @@ app = FastAPI(
     version="2.0.0",
 )
 
-# Allow requests from frontend (local dev + Vercel)
+# Allow all localhost ports for local dev, plus Vercel production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://netra-rakshak-seven.vercel.app",
-        "https://*.vercel.app",
-    ],
+    allow_origin_regex=r"http://localhost:\d+|https://.*\.vercel\.app|https://netra-rakshak-seven\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
