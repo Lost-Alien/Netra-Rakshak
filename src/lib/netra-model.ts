@@ -157,20 +157,14 @@ export async function runNetraDiagnosis(
 
   onProgress?.("Stage 1: Connecting to Netra Rakshak diagnostic engine...");
 
-  // Build multipart form data
+  // Build multipart form data. Vercel Functions cap request bodies, while
+  // portable fundus cameras commonly produce 5–15 MB PNGs. The model itself
+  // receives a 224 px input, so a 1600 px JPEG preserves clinical context
+  // while keeping uploads reliable on rural connections.
+  const uploadImage = await prepareImageForUpload(input);
   const formData = new FormData();
-  if (input instanceof File) {
-    formData.append("file", input, input.name);
-  } else if (input instanceof Blob) {
-    formData.append("file", input, "retinal-image.jpg");
-  } else {
-    // URL string — fetch and forward as blob
-    onProgress?.("Fetching image for analysis...");
-    const resp = await fetch(input);
-    if (!resp.ok) throw new Error(`Failed to fetch image from URL: ${input}`);
-    const blob = await resp.blob();
-    formData.append("file", blob, "retinal-image.jpg");
-  }
+  const filename = input instanceof File ? input.name.replace(/\.[^.]+$/, ".jpg") : "retinal-image.jpg";
+  formData.append("file", uploadImage, filename);
 
   onProgress?.("Stage 2: Applying Green-Channel Rayleigh CLAHE preprocessing...");
 
@@ -216,6 +210,38 @@ export async function runNetraDiagnosis(
   onProgress?.("Diagnostic evaluation complete. Rendering 4-quadrant report...");
 
   return mapBackendResponse(data, imageUrl);
+}
+
+async function prepareImageForUpload(input: File | Blob | string): Promise<Blob> {
+  let source: Blob;
+  if (typeof input === "string") {
+    const response = await fetch(input);
+    if (!response.ok) throw new Error(`Failed to fetch image from URL: ${input}`);
+    source = await response.blob();
+  } else {
+    source = input;
+  }
+
+  if (!source.type.startsWith("image/") || typeof createImageBitmap === "undefined") {
+    return source;
+  }
+
+  const bitmap = await createImageBitmap(source);
+  const maxDimension = 1600;
+  const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d")?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (compressed) => compressed ? resolve(compressed) : reject(new Error("Could not prepare retinal image for upload.")),
+      "image/jpeg",
+      0.88,
+    );
+  });
 }
 
 // ─── Response Mapper ──────────────────────────────────────────────────────────
