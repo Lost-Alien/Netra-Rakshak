@@ -107,6 +107,13 @@ interface BackendVerdict {
   is_urgent: boolean;
 }
 
+interface BackendVisuals {
+  rayleigh_clahe_url: string;
+  gradcam_saliency_url: string;
+  biomarker_segmentation_url: string;
+  gradcam_method: string;
+}
+
 interface BackendResponse {
   status: "success";
   icdr_level: number;
@@ -121,6 +128,7 @@ interface BackendResponse {
   execution_time_ms: number;
   input_shape: number[];
   preprocessing: string;
+  visuals?: BackendVisuals;
 }
 
 // ─── Main Diagnosis Function ──────────────────────────────────────────────────
@@ -214,16 +222,18 @@ export async function runNetraDiagnosis(
 
 function mapBackendResponse(data: BackendResponse, imageUrl: string): NetraDiagnosisResult {
   const { iqa, biomarkers, verdict } = data;
+  const visuals = data.visuals;
 
   return {
     predictions: data.predictions,
     inputShape: data.input_shape,
 
-    // Visual outputs — backend doesn't generate images yet; use original for all
+    // Derived outputs are rendered by the diagnostic backend. Older backends
+    // gracefully retain the original image until they are upgraded.
     primaryOpticalUrl: imageUrl,
-    rayleighClaheUrl: imageUrl,
-    gradCamSaliencyUrl: imageUrl,
-    biomarkerSegmentationUrl: imageUrl,
+    rayleighClaheUrl: visuals?.rayleigh_clahe_url ?? imageUrl,
+    gradCamSaliencyUrl: visuals?.gradcam_saliency_url ?? imageUrl,
+    biomarkerSegmentationUrl: visuals?.biomarker_segmentation_url ?? imageUrl,
 
     // IQA
     opticalResolution: data.optical_resolution,

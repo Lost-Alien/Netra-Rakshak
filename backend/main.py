@@ -10,6 +10,7 @@ CRITICAL: This model was trained on [0, 255] uint8 images.
 DO NOT normalize to [0.0, 1.0] — this collapses all predictions to Level 0.
 """
 
+import base64
 import io
 import os
 import time
@@ -199,6 +200,25 @@ def preprocess_for_inference(img_bgr: np.ndarray) -> np.ndarray:
     return batch
 
 
+def image_data_url(img_bgr: np.ndarray, max_dimension: int = 640) -> str:
+    """Return a compact JPEG data URL suitable for the dashboard image panels."""
+    height, width = img_bgr.shape[:2]
+    scale = min(1.0, max_dimension / max(height, width))
+    if scale < 1.0:
+        img_bgr = cv2.resize(
+            img_bgr,
+            (round(width * scale), round(height * scale)),
+            interpolation=cv2.INTER_AREA,
+        )
+
+    encoded, buffer = cv2.imencode(
+        ".jpg", img_bgr, [cv2.IMWRITE_JPEG_QUALITY, 88]
+    )
+    if not encoded:
+        raise RuntimeError("Could not encode diagnostic visualization.")
+    return "data:image/jpeg;base64," + base64.b64encode(buffer).decode("ascii")
+
+
 def softmax(logits: np.ndarray) -> np.ndarray:
     exp = np.exp(logits - np.max(logits))
     return exp / exp.sum()
@@ -315,6 +335,33 @@ def extract_biomarkers(img_bgr: np.ndarray) -> dict:
     exudate_pixels = int(np.sum(exudate_mask))
     exudate_burden_pct = exudate_pixels / fov_area * 100.0
 
+    # MATLAB's fourth pane overlays these deterministic masks on the retinal
+    # image. Preserve the same color convention: cyan vessels, red dark
+    # lesions, and yellow hard exudates.
+    segmentation_view = norm.copy()
+    for mask, color in (
+        (vessel_binary > 0, (255, 255, 0)),
+        (lesion_candidates > 0, (0, 0, 255)),
+        (exudate_mask > 0, (0, 255, 255)),
+    ):
+        segmentation_view[mask] = cv2.addWeighted(
+            segmentation_view[mask], 0.35,
+            np.full_like(segmentation_view[mask], color), 0.65,
+            0,
+        )
+
+    # The ONNX export exposes logits only, so gradient back-propagation is not
+    # available in the serving runtime. This lesion-weighted saliency map is a
+    # transparent, deterministic XAI fallback using the exact pathology masks
+    # shown in the segmentation pane.
+    lesion_signal = np.maximum(bottom_hat, top_hat)
+    lesion_signal[(fov_inner == 0) | (od_mask > 0)] = 0
+    saliency = cv2.normalize(lesion_signal, None, 0, 255, cv2.NORM_MINMAX)
+    saliency = cv2.GaussianBlur(saliency, (0, 0), sigmaX=18, sigmaY=18)
+    saliency = cv2.normalize(saliency, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    saliency_heatmap = cv2.applyColorMap(saliency, cv2.COLORMAP_JET)
+    saliency_view = cv2.addWeighted(norm, 0.55, saliency_heatmap, 0.45, 0)
+
     return {
         "num_mas": num_mas,
         "num_hemorrhages": num_hemorrhages,
@@ -325,6 +372,11 @@ def extract_biomarkers(img_bgr: np.ndarray) -> dict:
         "optic_disc_y": od_y,
         "optic_disc_radius": od_radius,
         "fov_area_pixels": fov_area,
+        "visuals": {
+            "biomarker_segmentation_url": image_data_url(segmentation_view),
+            "saliency_url": image_data_url(saliency_view),
+            "saliency_method": "deterministic_lesion_saliency",
+        },
     }
 
 
@@ -415,6 +467,7 @@ async def predict(file: UploadFile = File(...)):
     iqa = compute_iqa(gray)
 
     # Preprocessing + Inference
+    enhanced_bgr = matlab_green_clahe(img_bgr)
     img_batch = preprocess_for_inference(img_bgr)
     probs = run_inference(img_batch)  # shape [5], float32
 
@@ -443,6 +496,12 @@ async def predict(file: UploadFile = File(...)):
         "optical_resolution": f"{w} × {h} px",
         "iqa": iqa,
         "biomarkers": biomarkers,
+        "visuals": {
+            "rayleigh_clahe_url": image_data_url(enhanced_bgr),
+            "gradcam_saliency_url": biomarkers["visuals"]["saliency_url"],
+            "biomarker_segmentation_url": biomarkers["visuals"]["biomarker_segmentation_url"],
+            "gradcam_method": biomarkers["visuals"]["saliency_method"],
+        },
         "verdict": verdict,
         "execution_time_ms": round(exec_ms, 1),
         "input_shape": [1, 3, 224, 224],
