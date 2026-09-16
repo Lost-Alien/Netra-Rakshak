@@ -2,14 +2,19 @@
  * NETRA RAKSHAK — Diagnostic Engine Client
  * Smart India Hackathon (SIH 26038)
  *
- * Connects to the FastAPI backend (backend/main.py) which runs the actual
- * netra_rakshak.onnx ResNet-50 model with MATLAB-faithful preprocessing.
+ * In production (Vercel), calls the server-side proxy route /api/predict,
+ * which forwards to the EC2 FastAPI backend at http://13.200.63.0.
+ * This avoids Mixed Content (HTTPS → HTTP) errors permanently — no domain needed.
  *
- * Setup: Set VITE_NETRA_API_URL in your .env file:
- *   VITE_NETRA_API_URL=http://localhost:8000/predict
+ * In local dev, set VITE_NETRA_API_URL=http://localhost:8000/predict
  */
 
-export const NETRA_API_URL = import.meta.env["VITE_NETRA_API_URL"] || "";
+// In local dev: use env var (e.g., http://localhost:8000/predict)
+// In production: use relative /api/predict (our server-side proxy)
+const isDev = import.meta.env.DEV;
+export const NETRA_API_URL = isDev
+  ? (import.meta.env["VITE_NETRA_API_URL"] || "http://localhost:8000/predict")
+  : "/api/predict";
 
 // ─── Public Types ─────────────────────────────────────────────────────────────
 
