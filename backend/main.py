@@ -55,57 +55,35 @@ ICDR_LABELS = [
     "Level 4: Proliferative Diabetic Retinopathy",
 ]
 
-# Model can be loaded from:
-#   1. LOCAL_MODEL_PATH env variable (for local dev)
-#   2. HuggingFace Hub via HF_TOKEN + HF_MODEL_REPO env vars (auto-download)
-#   3. Default local path relative to this file
+# Model is loaded from LOCAL_MODEL_PATH.
+#   - On EC2 production: /opt/netra-rakshak/backend/netra_rakshak.onnx (pre-placed during setup)
+#   - For local dev: set LOCAL_MODEL_PATH env var to your local .onnx file path
 LOCAL_MODEL_PATH = os.environ.get(
     "LOCAL_MODEL_PATH",
     str(Path(__file__).parent / "netra_rakshak.onnx"),
 )
-# HuggingFace Hub auto-download config
-#   HF_TOKEN   : Bearer token from huggingface.co/settings/tokens
-#   HF_MODEL_REPO: e.g. "L0st-Alien/netra_rakhshak"
-#   HF_MODEL_FILE: filename in repo (default: netra_rakshak.onnx)
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-HF_MODEL_REPO = os.environ.get("HF_MODEL_REPO", "L0st-Alien/netra_rakhshak")
-HF_MODEL_FILE = os.environ.get("HF_MODEL_FILE", "netra_rakshak.onnx")
-HF_DOWNLOAD_URL = f"https://huggingface.co/{HF_MODEL_REPO}/resolve/main/{HF_MODEL_FILE}"
 
 _session: ort.InferenceSession | None = None
 _input_name: str = ""
 _model_loaded = False
 
 
-def download_model_if_needed():
-    """Download model from HuggingFace Hub if not present locally."""
-    if Path(LOCAL_MODEL_PATH).exists():
-        logger.info(f"Model already exists at {LOCAL_MODEL_PATH}")
-        return
-    if not HF_TOKEN:
+def check_model_exists():
+    """Verify the ONNX model file is present. Fails fast with a clear error if missing."""
+    if not Path(LOCAL_MODEL_PATH).exists():
         raise RuntimeError(
-            f"Model not found at {LOCAL_MODEL_PATH} and HF_TOKEN is not set.\n"
-            "Set HF_TOKEN environment variable to auto-download from HuggingFace."
+            f"Model not found at: {LOCAL_MODEL_PATH}\n"
+            "Place netra_rakshak.onnx in the backend/ directory or set the "
+            "LOCAL_MODEL_PATH environment variable to its absolute path."
         )
-    logger.info(f"Downloading model from HuggingFace: {HF_DOWNLOAD_URL} → {LOCAL_MODEL_PATH}")
-    import urllib.request
-    Path(LOCAL_MODEL_PATH).parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(
-        HF_DOWNLOAD_URL,
-        headers={"Authorization": f"Bearer {HF_TOKEN}"},
-    )
-    # Follow redirects (HF CDN uses 302 redirects)
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        with open(LOCAL_MODEL_PATH, "wb") as f:
-            f.write(resp.read())
     size_mb = Path(LOCAL_MODEL_PATH).stat().st_size / 1_000_000
-    logger.info(f"✅ Model downloaded successfully: {size_mb:.1f} MB")
+    logger.info(f"Model found at {LOCAL_MODEL_PATH} ({size_mb:.1f} MB)")
 
 
 def load_model():
     """Load ONNX model into OrtSession (CPU or GPU if available)."""
     global _session, _input_name, _model_loaded
-    download_model_if_needed()
+    check_model_exists()
     providers = (
         ["CUDAExecutionProvider", "CPUExecutionProvider"]
         if "CUDAExecutionProvider" in ort.get_available_providers()

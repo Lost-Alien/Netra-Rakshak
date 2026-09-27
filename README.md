@@ -7,14 +7,12 @@
 [![SIH 2026](https://img.shields.io/badge/SIH%202026-Problem%2026038-C1652F?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/research)
 [![Pipeline](https://img.shields.io/badge/Engineering-MATLAB%20R2026a%20%26%20App%20Designer-12314F?style=for-the-badge&logo=mathworks&logoColor=white)](https://netra-rakshak-seven.vercel.app/#how-it-works)
 [![Standard](https://img.shields.io/badge/Clinical%20Standard-ICDR%205--Stage-3F7D5C?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/#validation)
-[![Model](https://img.shields.io/badge/🤗%20HuggingFace-netra__rakhshak-FFD21E?style=for-the-badge)](https://huggingface.co/L0st-Alien/netra_rakhshak)
 
 > **Smart India Hackathon 2026** | **Problem Statement ID:** 26038
 > **Domain:** MedTech / BioTech / HealthTech
 > **Sponsor / Challenge:** MathWorks India & Ministry of Health and Family Welfare
 > **Production Web App:** [https://netra-rakshak-seven.vercel.app](https://netra-rakshak-seven.vercel.app)
 > **Backend API (Health):** [http://13.200.63.0/health](http://13.200.63.0/health)
-> **ONNX Model (HuggingFace):** [L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)
 > **MathWorks Cloud Architecture:** [AWS Reference Architecture](https://github.com/mathworks-ref-arch/matlab-web-app-server-on-aws) | [Azure Reference Architecture](https://github.com/mathworks-ref-arch/matlab-web-app-server-on-azure)
 
 ---
@@ -126,17 +124,11 @@ The EC2 **Elastic IP is permanent** — no DNS, no domain, no Cloudflare tunnel 
 }
 ```
 
-### Model: ONNX on HuggingFace Hub
+### Model: netra_rakshak.onnx
 
-The inference model is publicly hosted on HuggingFace:
-
-🤗 **[L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)**
-
+The ONNX model is stored directly on the EC2 instance at:
 ```
-Repository files:
-├── netra_rakshak.onnx   # 94.5 MB — ResNet-50, trained on [0,255] uint8 fundus images
-├── README.md
-└── .gitattributes
+/opt/netra-rakshak/backend/netra_rakshak.onnx   (94.5 MB, ResNet-50)
 ```
 
 > **⚠️ Critical Preprocessing Note:**
@@ -417,12 +409,9 @@ venv\Scripts\activate          # Windows
 # source venv/bin/activate    # Linux/macOS
 pip install -r requirements.txt
 
-# Set the path to your local ONNX model
+# Point to your local copy of the ONNX model
 set LOCAL_MODEL_PATH=path\to\netra_rakshak.onnx   # Windows
 # export LOCAL_MODEL_PATH=path/to/netra_rakshak.onnx
-
-# Download model from HuggingFace (if you don't have it locally)
-# export HF_TOKEN=hf_YOUR_TOKEN_HERE
 
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
@@ -468,7 +457,6 @@ curl -F "file=@your_fundus.jpg" http://13.200.63.0/predict
 5. **Grad-CAM**: Selvaraju, R. R., et al. "Grad-CAM: Visual Explanations from Deep Networks via Gradient-Based Localization." *IEEE ICCV*.
 6. **MathWorks India** for providing problem statement guidance under Smart India Hackathon 2026.
 7. **AWS** — EC2 `t3.small` (ap-south-1) hosting the ONNX inference backend.
-8. **HuggingFace** — Model hosting at [L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak).
 
 ---
 
