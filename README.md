@@ -2,31 +2,36 @@
 ### Explainable AI for Diabetic Retinopathy Screening in Rural India
 
 [![Live Production](https://img.shields.io/badge/Live%20Deployment-Vercel-0F6F6A?style=for-the-badge&logo=vercel&logoColor=white)](https://netra-rakshak-seven.vercel.app)
+[![Backend API](https://img.shields.io/badge/Backend%20API-AWS%20EC2%20t3.small-FF9900?style=for-the-badge&logo=amazonaws&logoColor=white)](http://13.200.63.0/health)
 [![MATLAB Web App Server](https://img.shields.io/badge/MATLAB-Web%20App%20Server-E16726?style=for-the-badge&logo=mathworks&logoColor=white)](https://github.com/mathworks-ref-arch/matlab-web-app-server-on-aws)
 [![SIH 2026](https://img.shields.io/badge/SIH%202026-Problem%2026038-C1652F?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/research)
 [![Pipeline](https://img.shields.io/badge/Engineering-MATLAB%20R2026a%20%26%20App%20Designer-12314F?style=for-the-badge&logo=mathworks&logoColor=white)](https://netra-rakshak-seven.vercel.app/#how-it-works)
 [![Standard](https://img.shields.io/badge/Clinical%20Standard-ICDR%205--Stage-3F7D5C?style=for-the-badge)](https://netra-rakshak-seven.vercel.app/#validation)
+[![Model](https://img.shields.io/badge/🤗%20HuggingFace-netra__rakhshak-FFD21E?style=for-the-badge)](https://huggingface.co/L0st-Alien/netra_rakhshak)
 
-> **Smart India Hackathon 2026** | **Problem Statement ID:** 26038  
-> **Domain:** MedTech / BioTech / HealthTech  
-> **Sponsor / Challenge:** MathWorks India & Ministry of Health and Family Welfare  
-> **Production Web App:** [https://netra-rakshak-seven.vercel.app](https://netra-rakshak-seven.vercel.app)  
+> **Smart India Hackathon 2026** | **Problem Statement ID:** 26038
+> **Domain:** MedTech / BioTech / HealthTech
+> **Sponsor / Challenge:** MathWorks India & Ministry of Health and Family Welfare
+> **Production Web App:** [https://netra-rakshak-seven.vercel.app](https://netra-rakshak-seven.vercel.app)
+> **Backend API (Health):** [http://13.200.63.0/health](http://13.200.63.0/health)
+> **ONNX Model (HuggingFace):** [L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)
 > **MathWorks Cloud Architecture:** [AWS Reference Architecture](https://github.com/mathworks-ref-arch/matlab-web-app-server-on-aws) | [Azure Reference Architecture](https://github.com/mathworks-ref-arch/matlab-web-app-server-on-azure)
 
 ---
 
 ## 📋 Table of Contents
 1. [Executive Summary & Clinical Background](#-executive-summary--clinical-background)
-2. [MATLAB® Web App Server Cloud Deployment](#-matlab-web-app-server-cloud-deployment)
-3. [Key Deployment Challenges Solved](#-key-deployment-challenges-solved)
-4. [5-Stage MATLAB Pipeline Architecture](#-5-stage-matlab-pipeline-architecture)
-5. [Platform Features & Tele-Ophthalmology Workflows](#-platform-features--tele-ophthalmology-workflows)
-6. [Clinical Validation & Benchmark Targets](#-clinical-validation--benchmark-targets)
-7. [Tech Stack](#-tech-stack)
-8. [Repository Structure](#-repository-structure)
-9. [Local Installation & Getting Started](#-local-installation--getting-started)
-10. [The Team — Built by Innovators](#-the-team--built-by-innovators)
-11. [Citations & Acknowledgments](#-citations--acknowledgments)
+2. [☁️ Production Infrastructure (AWS EC2 Backend)](#%EF%B8%8F-production-infrastructure-aws-ec2-backend)
+3. [MATLAB® Web App Server Cloud Deployment](#%EF%B8%8F-matlab-web-app-server-cloud-deployment)
+4. [Key Deployment Challenges Solved](#-key-deployment-challenges-solved)
+5. [5-Stage MATLAB Pipeline Architecture](#-5-stage-matlab-pipeline-architecture)
+6. [Platform Features & Tele-Ophthalmology Workflows](#-platform-features--tele-ophthalmology-workflows)
+7. [Clinical Validation & Benchmark Targets](#-clinical-validation--benchmark-targets)
+8. [Tech Stack](#%EF%B8%8F-tech-stack)
+9. [Repository Structure](#-repository-structure)
+10. [Local Installation & Getting Started](#-local-installation--getting-started)
+11. [The Team — Built by Innovators](#-the-team--built-by-innovators)
+12. [Citations & Acknowledgments](#-citations--acknowledgments)
 
 ---
 
@@ -41,6 +46,109 @@ India is confronting a diabetic retinopathy epidemic:
 Existing commercial AI systems operate as **black boxes**, lack transparent clinical explainability, and fail frequently when tested on variable, low-illumination non-mydriatic (undilated) captures from portable fundus cameras deployed in field camps.
 
 **Netra Rakshak** is a clinical-grade, explainable tele-ophthalmology screening platform designed specifically for Primary Healthcare Centres (PHCs) and rural mobile health camps across India.
+
+---
+
+## ☁️ Production Infrastructure (AWS EC2 Backend)
+
+The production diagnostic AI backend is deployed on **AWS EC2** in the `ap-south-1` (Mumbai) region — chosen for lowest latency from Indian PHC locations.
+
+### Infrastructure Overview
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        PRODUCTION DEPLOYMENT                                 │
+│                                                                              │
+│  Browser (HTTPS) ──►  Vercel Edge Network  ──►  /api/predict (SSR Proxy)   │
+│                            (Global CDN)              (TanStack Start)        │
+│                                                              │               │
+│                                                              ▼ HTTP          │
+│                                              ┌───────────────────────────┐  │
+│                                              │  AWS EC2 t3.small         │  │
+│                                              │  Region: ap-south-1       │  │
+│                                              │  Elastic IP: 13.200.63.0  │  │
+│                                              │  ─────────────────────    │  │
+│                                              │  Nginx (Port 80 → 8000)   │  │
+│                                              │  FastAPI + Uvicorn        │  │
+│                                              │  ONNX Runtime (CPU)       │  │
+│                                              │  netra_rakshak.onnx (91MB)│  │
+│                                              └───────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+### EC2 Instance Specifications
+
+| Property | Value |
+| :--- | :--- |
+| **Instance Type** | `t3.small` (2 vCPU, 2 GB RAM) |
+| **Region** | `ap-south-1` (Mumbai, India) |
+| **OS** | Ubuntu 22.04 LTS |
+| **Elastic IP** | `13.200.63.0` (static, never changes) |
+| **Storage** | 20 GB gp3 SSD |
+| **Backend Framework** | FastAPI + Uvicorn (2 workers) |
+| **Inference Engine** | ONNX Runtime 1.x (CPUExecutionProvider) |
+| **Model** | `netra_rakshak.onnx` — 94.5 MB ResNet-50 |
+| **Memory at Runtime** | ~767 MB / 1.9 GB |
+| **API Health Endpoint** | `http://13.200.63.0/health` |
+| **Process Manager** | systemd (`netra-rakshak.service`) |
+| **Reverse Proxy** | Nginx (port 80 → 8000) |
+
+### Why a Server-Side Proxy (No Domain Needed)?
+
+The Vercel frontend is served over **HTTPS**. Browsers block direct `HTTP` fetch calls from HTTPS pages (Mixed Content policy). Rather than paying for a domain + SSL cert, we use a **TanStack Start SSR API route** (`/api/predict`) that proxies requests server-side:
+
+```
+Browser ──HTTPS──► Vercel /api/predict ──HTTP (server-side)──► EC2 13.200.63.0
+```
+
+The EC2 **Elastic IP is permanent** — no DNS, no domain, no Cloudflare tunnel maintenance required. Free forever.
+
+### API Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/health` | `GET` | Backend liveness check. Returns `model_loaded: true` when ready. |
+| `/predict` | `POST` | Accepts `multipart/form-data` with `file` field (fundus image). Returns ICDR grade + confidence + biomarkers. |
+
+**Sample `/predict` Response:**
+```json
+{
+  "prediction": "Level 3: Severe Non-Proliferative DR",
+  "confidence": 0.91,
+  "severity_index": 3,
+  "biomarkers": {
+    "microaneurysm_count": 47,
+    "hemorrhage_area_ratio": 0.034,
+    "exudate_area_ratio": 0.018,
+    "neovascularization_detected": false
+  },
+  "processing_time_ms": 812
+}
+```
+
+### Model: ONNX on HuggingFace Hub
+
+The inference model is publicly hosted on HuggingFace:
+
+🤗 **[L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)**
+
+```
+Repository files:
+├── netra_rakshak.onnx   # 94.5 MB — ResNet-50, trained on [0,255] uint8 fundus images
+├── README.md
+└── .gitattributes
+```
+
+> **⚠️ Critical Preprocessing Note:**
+> This model was trained on raw `[0, 255]` uint8 pixel values **with MATLAB CLAHE preprocessing**.
+> **Never normalize to `[0.0, 1.0]`** — doing so collapses all predictions to Grade 0.
+> The backend faithfully replicates the MATLAB `step2_quality_check.m` Green-Channel Rayleigh CLAHE pipeline.
+
+### Backend Stack
+
+- **`backend/main.py`** — FastAPI app with MATLAB-faithful CLAHE preprocessing and biomarker extraction
+- **`src/routes/api.predict.ts`** — TanStack Start SSR proxy route (permanent HTTPS bridge)
+- **`backend/setup.sh`** — EC2 provisioning script (Python 3.11, Nginx, systemd, ONNX Runtime)
 
 ---
 
@@ -110,6 +218,7 @@ This configuration executes heavy computational and tensor processing securely o
 | **Black-Box Skepticism** | Clinicians reject AI predictions due to lack of evidence. | **Grad-CAM Explainability (Stage 4)**: Class activation heatmaps highlight exact lesion clusters (microaneurysms, hemorrhages, exudates). |
 | **Rural Bandwidth Constraints** | Cloud-only architectures fail in sub-centres without 4G/5G. | **Two-Tier Edge Processing**: Local triage on low-power PC; store-and-forward sync to district hospitals. |
 | **Specialist Workflow Overload** | Doctors burdened with manual screening of normal eyes. | **Intelligent Triage Filtering**: Only referable cases (Grade ≥ 2) route to specialists; review takes < 30 seconds. |
+| **HTTPS Mixed Content Errors** | EC2 HTTP blocked by HTTPS Vercel frontend. | **TanStack SSR Proxy** (`/api/predict`): Browser calls HTTPS Vercel, which proxies server-side to EC2. No domain or cert needed. |
 
 ---
 
@@ -136,7 +245,7 @@ This configuration executes heavy computational and tensor processing securely o
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
 │ Stage 3: Deep Convolutional Severity Grading (ICDR Scale)                                 │
-│ • Fine-tuned CNN classifier (MATLAB Deep Learning Toolbox™)                               │
+│ • Fine-tuned ResNet-50 CNN (ONNX export from MATLAB Deep Learning Toolbox™)               │
 │ • Staged into 5 ICDR classes:                                                             │
 │   - Grade 0: No Apparent Retinopathy                                                      │
 │   - Grade 1: Mild NPDR (Microaneurysms only)                                              │
@@ -215,13 +324,27 @@ The pipeline has been engineered to meet and exceed international screening effi
 
 ## 🛠️ Tech Stack
 
+### Frontend
 - **Framework**: [TanStack Start](https://tanstack.com/router) (Full-stack SSR / Static generation for React 19)
-- **Routing**: `@tanstack/react-router` (Type-safe routing)
+- **Routing**: `@tanstack/react-router` (Type-safe file-based routing)
 - **Language**: TypeScript & Modern React 19
 - **Styling**: Tailwind CSS v4 with `@theme inline` CSS custom properties
 - **Icons**: Lucide React
-- **Hosting & Edge Deployment**: Vercel Serverless / Edge Network
-- **AI / Signal Processing Architecture**: MATLAB® (Image Processing Toolbox™, Computer Vision Toolbox™, Deep Learning Toolbox™)
+- **Hosting**: Vercel Edge Network (auto-deploys from GitHub `main` branch)
+
+### Backend (Production — AWS)
+- **Runtime**: Python 3.11 + FastAPI + Uvicorn (2 workers)
+- **Inference Engine**: ONNX Runtime 1.x (`CPUExecutionProvider`)
+- **Image Preprocessing**: OpenCV 4.x (MATLAB-faithful CLAHE → Median filter pipeline)
+- **Cloud**: AWS EC2 `t3.small`, `ap-south-1` (Mumbai), Elastic IP `13.200.63.0`
+- **Process Manager**: systemd (`netra-rakshak.service`, enabled on boot)
+- **Reverse Proxy**: Nginx (port 80 → Uvicorn 8000)
+- **Model Storage**: HuggingFace Hub ([L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)) + local EC2 copy
+
+### AI / Signal Processing
+- **Model**: ResNet-50 fine-tuned for 5-class ICDR grading (ONNX export)
+- **Preprocessing**: MATLAB R2026a — Image Processing Toolbox™, Computer Vision Toolbox™, Deep Learning Toolbox™
+- **Training Data**: IDRiD + APTOS 2019 + EyePACS + Messidor-2
 
 ---
 
@@ -237,16 +360,24 @@ Netra-Rakshak/
 ├── src/
 │   ├── assets/
 │   │   └── fundus.jpg            # Bundled source image asset
+│   ├── lib/
+│   │   └── netra-model.ts        # API client — routes to /api/predict in prod
 │   ├── routes/
+│   │   ├── api.predict.ts        # ← SSR proxy to EC2 backend (NEW)
 │   │   ├── __root.tsx            # HTML shell, metadata, clinical CSS, error boundary
 │   │   ├── index.tsx             # Homepage & Case Inspector
+│   │   ├── dashboard.tsx         # Diagnostic Dashboard (/dashboard)
 │   │   ├── doctor.tsx            # Specialist Validation Console (/doctor)
 │   │   ├── kiosk.tsx             # PHC Kiosk Intake Station (/kiosk)
 │   │   ├── login.tsx             # Tele-Ophthalmology Portal Sign-In (/login)
 │   │   └── research.tsx          # Technical Architecture & Paper (/research)
 │   ├── router.tsx                # TanStack Router configuration
 │   ├── styles.css                # Clinical design system tokens & typography
-│   └── start.ts                  # Server entrypoint
+│   ├── server.ts                 # SSR server entry (Nitro/Cloudflare)
+│   └── start.ts                  # App entrypoint
+├── backend/
+│   ├── main.py                   # FastAPI app — CLAHE preprocessing + ONNX inference
+│   └── setup.sh                  # EC2 provisioning script (Ubuntu 22.04)
 ├── package.json
 ├── vite.config.ts
 └── README.md
@@ -259,6 +390,7 @@ Netra-Rakshak/
 ### Prerequisites
 - Node.js 20.x or higher
 - npm or pnpm / bun
+- Python 3.11+ (for local backend)
 
 ### 1. Clone the repository
 ```bash
@@ -266,20 +398,54 @@ git clone https://github.com/Lost-Alien/Netra-Rakshak.git
 cd Netra-Rakshak
 ```
 
-### 2. Install dependencies
+### 2. Install frontend dependencies
 ```bash
 npm install
 ```
 
-### 3. Run the local development server
+### 3. Configure environment
+```bash
+# .env.local — for local dev pointing to your local backend
+VITE_NETRA_API_URL=http://localhost:8000/predict
+```
+
+### 4. Start the local FastAPI backend
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate          # Windows
+# source venv/bin/activate    # Linux/macOS
+pip install -r requirements.txt
+
+# Set the path to your local ONNX model
+set LOCAL_MODEL_PATH=path\to\netra_rakshak.onnx   # Windows
+# export LOCAL_MODEL_PATH=path/to/netra_rakshak.onnx
+
+# Download model from HuggingFace (if you don't have it locally)
+# export HF_TOKEN=hf_YOUR_TOKEN_HERE
+
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+### 5. Run the frontend dev server
 ```bash
 npm run dev
 ```
 Open your browser and navigate to `http://localhost:8080/`.
 
-### 4. Build for production
+### 6. Build for production
 ```bash
 npm run build
+```
+
+### Verifying the Production Backend
+```bash
+# Health check
+curl http://13.200.63.0/health
+# → {"status":"ok","model":"netra_rakshak.onnx","model_loaded":true}
+
+# Run inference on a test image
+curl -F "file=@your_fundus.jpg" http://13.200.63.0/predict
 ```
 
 ---
@@ -301,6 +467,8 @@ npm run build
 4. **APTOS 2019 Blindness Detection**: Asia Pacific Tele-Ophthalmology Society (APTOS).
 5. **Grad-CAM**: Selvaraju, R. R., et al. "Grad-CAM: Visual Explanations from Deep Networks via Gradient-Based Localization." *IEEE ICCV*.
 6. **MathWorks India** for providing problem statement guidance under Smart India Hackathon 2026.
+7. **AWS** — EC2 `t3.small` (ap-south-1) hosting the ONNX inference backend.
+8. **HuggingFace** — Model hosting at [L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak).
 
 ---
 
