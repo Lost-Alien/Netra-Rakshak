@@ -228,11 +228,11 @@ This configuration executes heavy computational and tensor processing securely o
 └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ Stage 2: Retinal Landmark & Lesion Segmentation                                           │
-│ • Circular Hough Transform: imfindcircles() for optic nerve head localization             │
-│ • Macular fovea center estimation via geometric distance mapping                          │
-│ • Gabor wavelet filters & multi-scale morphological strel() top/bottom-hat filters        │
-│ • Deterministic detection of microaneurysms (down to 10µm) and hard lipid exudates        │
+│ Stage 2: Deterministic Retinal Biomarker Segmentation                                     │
+│ • 12-orientation directional linear morphology for continuous vascular tree extraction    │
+│ • Gaussian-filtered red-green cross-correlation map for optic disc (OD) localization      │
+│ • Bottom-hat transform: microaneurysms (3–35 px, E<0.85) & blot hemorrhages (36–500 px)  │
+│ • Top-hat transform: hard exudate lipid plaque segmentation (intensity > 0.11)            │
 └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
@@ -254,10 +254,11 @@ This configuration executes heavy computational and tensor processing securely o
 └─────────────────────────────────────────────┬─────────────────────────────────────────────┘
                                               ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────┐
-│ Stage 5: Tele-Ophthalmology & Specialist Validation Loop                                  │
-│ • Non-referable (Grade 0–1): Logged to patient's ABHA record with routine annual rescreen │
-│ • Referable (Grade 2–4): Encrypted packet synced to District Hospital Specialist Console  │
-│ • Ophthalmologist confirms or overrides diagnosis with Grad-CAM inspection in <30 seconds │
+│ Stage 5: Simulink Telemedicine Dispatch & Specialist Validation Loop                      │
+│ • Non-referable (Grade 0–1): Discharged locally at PHC (0.00 MB uplink bandwidth used)   │
+│ • Referable (Grade 2–4): 0.65 MB compressed XAI packet uplinked to District Specialist    │
+│ • Auto-priority tagging: P1 Emergency (Grade 4) / P2 Specialist Queue (Grades 2–3)       │
+│ • Ophthalmologist confirms or overrides via Grad-CAM inspection in < 30 seconds           │
 └───────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -333,9 +334,10 @@ The pipeline is validated on **599 independent samples** across APTOS 2019, IDRi
 | **IQA Fail-Safe** | ❌ None | ❌ None | ✅ Automated recapture rejection |
 
 ### Benchmark Datasets:
-- **IDRiD**: Indian Demographic Retinal Image Dataset (pixel-level lesion annotations).
-- **APTOS 2019 Blindness Detection**: High-variance field captures from Indian tele-screening camps.
-- **EyePACS & Messidor-2**: Diverse multi-centre clinical cohorts for generalizability.
+- **APTOS 2019 Blindness Detection**: High-variance field captures from Indian tele-screening camps (primary training cohort).
+- **IDRiD**: Indian Diabetic Retinopathy Image Dataset — pixel-level microaneurysm, hemorrhage & exudate ground truth.
+- **DRIVE**: Digital Retinal Images for Vessel Extraction — gold-standard vascular segmentation benchmark (N=20 test subjects).
+- **Messidor-2**: Diverse multi-center out-of-distribution clinical cohort for domain generalizability audit.
 
 ---
 
@@ -356,7 +358,7 @@ The pipeline is validated on **599 independent samples** across APTOS 2019, IDRi
 - **Cloud**: AWS EC2 `t3.small`, `ap-south-1` (Mumbai), Elastic IP `13.200.63.0`
 - **Process Manager**: systemd (`netra-rakshak.service`, enabled on boot)
 - **Reverse Proxy**: Nginx (port 80 → Uvicorn 8000)
-- **Model Storage**: HuggingFace Hub ([L0st-Alien/netra_rakhshak](https://huggingface.co/L0st-Alien/netra_rakhshak)) + local EC2 copy
+- **Model Storage**: Local EC2 disk — `/opt/netra-rakshak/backend/netra_rakshak.onnx`
 
 ### AI / Signal Processing
 - **Model**: ResNet-50 fine-tuned for 5-class ICDR grading (ONNX export)
